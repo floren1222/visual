@@ -71,13 +71,11 @@ public final class TargetHUD extends Module {
     @Override
     public void onEnable() {
         super.onEnable();
-        System.out.println("TargetHUD: Module enabled");
     }
 
     @Override
     public void onDisable() {
         super.onDisable();
-        System.out.println("TargetHUD: Module disabled");
         currentTarget = null;
     }
 
@@ -86,14 +84,10 @@ public final class TargetHUD extends Module {
         if (!attackMode.isSelected() && !bothMode.isSelected()) return;
         
         Entity target = event.getTarget();
-        System.out.println("TargetHUD: Attack event - target: " + (target != null ? target.getName().getString() : "null"));
-        
+
         if (target instanceof LivingEntity livingEntity) {
             if (isValidTarget(livingEntity)) {
-                System.out.println("TargetHUD: Setting target from attack: " + livingEntity.getName().getString());
                 setTarget(livingEntity);
-            } else {
-                System.out.println("TargetHUD: Target not valid: " + livingEntity.getName().getString());
             }
         }
     }
@@ -127,7 +121,6 @@ public final class TargetHUD extends Module {
             
             if (target instanceof LivingEntity livingEntity) {
                 if (isValidTarget(livingEntity)) {
-                    System.out.println("TargetHUD: Setting target from crosshair: " + livingEntity.getName().getString());
                     setTarget(livingEntity);
                 }
             }
@@ -172,14 +165,12 @@ public final class TargetHUD extends Module {
                 demoTarget = mc.player;
                 setTarget(demoTarget);
             }
-            System.out.println("TargetHUD: Demo mode enabled");
         } else {
             // Закрыли чат - выключаем демо режим
             if (demoMode) {
                 demoMode = false;
                 clearTarget();
                 demoTarget = null;
-                System.out.println("TargetHUD: Demo mode disabled");
             }
         }
     }
@@ -205,13 +196,11 @@ public final class TargetHUD extends Module {
                 isDragging = true;
                 dragOffsetX = (float) mouseX - targetHudComponent.getX();
                 dragOffsetY = (float) mouseY - targetHudComponent.getY();
-                System.out.println("TargetHUD: Started dragging at (" + mouseX + ", " + mouseY + ")");
             }
         } else if (event.getAction() == 0) { // ЛКМ отпущена
             if (isDragging) {
                 isDragging = false;
                 targetHudComponent.release();
-                System.out.println("TargetHUD: Stopped dragging");
             }
         }
     }
@@ -219,16 +208,12 @@ public final class TargetHUD extends Module {
     private void setTarget(LivingEntity target) {
         this.currentTarget = target;
         this.lastTargetTime = System.currentTimeMillis();
-        
-        System.out.println("TargetHUD: Target set to: " + target.getName().getString());
-        
+
         // Обновляем цель в TargetHudComponent
         updateTargetHudComponent(target);
     }
 
     private void clearTarget() {
-        System.out.println("TargetHUD: Target cleared");
-        
         // Очищаем цель в TargetHudComponent для анимации исчезновения
         updateTargetHudComponent(null);
         
@@ -241,9 +226,9 @@ public final class TargetHUD extends Module {
         if (targetHudComponent != null) {
             targetHudComponent.setTarget(target);
             if (target != null) {
-                System.out.println("TargetHUD: Updated TargetHudComponent with target: " + target.getName().getString());
+                // Target set
             } else {
-                System.out.println("TargetHUD: Cleared TargetHudComponent target");
+                // Target cleared
             }
         }
     }

@@ -3,7 +3,6 @@ package zenith.zov.client.hud.elements.component;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 import zenith.zov.Zenith;
 import zenith.zov.base.animations.base.Animation;
 import zenith.zov.base.animations.base.Easing;
@@ -12,13 +11,10 @@ import zenith.zov.base.font.Fonts;
 import zenith.zov.base.theme.Theme;
 import zenith.zov.client.hud.elements.draggable.DraggableHudElement;
 import zenith.zov.utility.game.player.PlayerIntersectionUtil;
-import zenith.zov.utility.mixin.accessors.DrawContextAccessor;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
-
-import java.util.List;
 
 import static java.lang.Math.round;
 
@@ -55,16 +51,16 @@ public class TargetHudComponent extends DraggableHudElement {
         float fontSize = 7f;
 
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
-        float opacity = 0.75f; // Будет получать из настроек модуля
+        float opacity = 0.85f;
         ColorRGBA bgColor = theme.getBackgroundColor().mulAlpha(opacity);
         ColorRGBA accentColor = theme.getColor().mulAlpha(opacity);
         ColorRGBA textColor = theme.getWhite();
 
         // Параметры здоровья
         float hp = round(PlayerIntersectionUtil.getHealth(target));
-        float maxHp = Math.max(20, hp);
+        float maxHp = target.getMaxHealth();
         float healthPercent = hp / maxHp;
-        boolean showHealthText = true; // Будет получать из настроек модуля
+        boolean showHealthText = true;
         Font hpFont = Fonts.MEDIUM.getFont(fontSize);
         String hpText = (int) hp + "";
         float hpTextWidth = showHealthText ? hpFont.width(hpText) : 0f;
@@ -79,7 +75,8 @@ public class TargetHudComponent extends DraggableHudElement {
             ctx.getMatrices().scale(animation, animation, 1f);
             ctx.getMatrices().translate(-(posX + width / 2f), -(posY + height / 2f), 0f);
 
-            // Фон и тонкая рамка
+            // Блюр и фон с тонкой рамкой
+            DrawUtil.drawBlurHud(ctx.getMatrices(), posX, posY, width, height, 22, BorderRadius.all(6), ColorRGBA.WHITE);
             ctx.drawRoundedRect(posX, posY, width, height, BorderRadius.all(6), bgColor);
             ctx.drawRoundedBorder(posX, posY, width, height, 0.5f, BorderRadius.all(6), accentColor.mulAlpha(0.5f));
 
@@ -124,9 +121,17 @@ public class TargetHudComponent extends DraggableHudElement {
             if (showHealthBar) {
                 float barX = headX + headSize + padding;
                 float barY = headY + 7f;
-                float barHeight = 2f;
+                float barHeight = 3f;
                 ColorRGBA barBg = theme.getForegroundLight().mulAlpha(0.3f);
-                ColorRGBA barColor = ColorRGBA.lerp(ColorRGBA.RED, accentColor, healthPercent);
+
+                ColorRGBA barColor;
+                if (healthPercent > 0.6f) {
+                    barColor = ColorRGBA.GREEN.mulAlpha(opacity);
+                } else if (healthPercent > 0.2f) {
+                    barColor = ColorRGBA.YELLOW.mulAlpha(opacity);
+                } else {
+                    barColor = ColorRGBA.RED.mulAlpha(opacity);
+                }
 
                 ctx.drawRoundedRect(barX, barY, barFullWidth, barHeight, BorderRadius.all(1f), barBg);
 
@@ -144,39 +149,6 @@ public class TargetHudComponent extends DraggableHudElement {
         }
         ctx.popMatrix();
     }
-
-    private void drawArmor(CustomDrawContext ctx, PlayerEntity player, float posX, float posY, float headSize, float padding, float fontSize) {
-        float boxSizeItem = 10;
-        float paddingItem = 3;
-        float iconX = posX;
-        float iconY = posY + 1;
-
-        Font xFont = Fonts.ICONS.getFont(5f);
-        List<ItemStack> armor = player.getInventory().armor;
-        ItemStack[] items = {
-                player.getMainHandStack(),
-                player.getOffHandStack(),
-                armor.get(3), armor.get(2), armor.get(1), armor.get(0)
-        };
-        
-        for (ItemStack stack : items) {
-            if (!stack.isEmpty()) {
-                ctx.getMatrices().push();
-                ctx.getMatrices().translate(iconX + (boxSizeItem - 9.6) / 2, iconY + (boxSizeItem - 9.6) / 2, 0);
-                ctx.getMatrices().scale(0.6f, 0.6f, 0.6f);
-                ctx.drawItem(stack, 0, 0);
-                ((DrawContextAccessor) ctx).callDrawItemBar(stack, 0, 0);
-                ((DrawContextAccessor) ctx).callDrawCooldownProgress(stack, 0, 0);
-                ctx.getMatrices().pop();
-            } else {
-                ColorRGBA emptyColor = Zenith.getInstance().getThemeManager().getCurrentTheme().getGrayLight();
-                ctx.drawText(xFont, "M", iconX + (boxSizeItem - xFont.width("X")) / 2, 
-                    iconY + (boxSizeItem - xFont.height()) / 2, emptyColor);
-            }
-            iconX += boxSizeItem + paddingItem;
-        }
-    }
-
 
     public void setTarget(LivingEntity target) {
         if (target == null) {

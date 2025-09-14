@@ -76,8 +76,8 @@ public class TargetHudComponent extends DraggableHudElement {
 
 
             float hp = round(PlayerIntersectionUtil.getHealth(target));
-            float maxHp = Math.max(20, hp);
-            float healthPercent = hp / maxHp;
+            float maxHp = target.getMaxHealth();
+            float healthPercent = hp / target.getMaxHealth();
             float barFullWidth = width - padding * 2 - headSize - padding * 2 - 25f; // -25f для HP текста
 
             float animatedHealth = healthAnimation.update(barFullWidth * healthPercent);

@@ -71,13 +71,11 @@ public final class TargetHUD extends Module {
     @Override
     public void onEnable() {
         super.onEnable();
-        System.out.println("TargetHUD: Module enabled");
     }
 
     @Override
     public void onDisable() {
         super.onDisable();
-        System.out.println("TargetHUD: Module disabled");
         currentTarget = null;
     }
 
@@ -86,14 +84,10 @@ public final class TargetHUD extends Module {
         if (!attackMode.isSelected() && !bothMode.isSelected()) return;
         
         Entity target = event.getTarget();
-        System.out.println("TargetHUD: Attack event - target: " + (target != null ? target.getName().getString() : "null"));
-        
+
         if (target instanceof LivingEntity livingEntity) {
             if (isValidTarget(livingEntity)) {
-                System.out.println("TargetHUD: Setting target from attack: " + livingEntity.getName().getString());
                 setTarget(livingEntity);
-            } else {
-                System.out.println("TargetHUD: Target not valid: " + livingEntity.getName().getString());
             }
         }
     }
@@ -127,7 +121,6 @@ public final class TargetHUD extends Module {
             
             if (target instanceof LivingEntity livingEntity) {
                 if (isValidTarget(livingEntity)) {
-                    System.out.println("TargetHUD: Setting target from crosshair: " + livingEntity.getName().getString());
                     setTarget(livingEntity);
                 }
             }
@@ -146,13 +139,19 @@ public final class TargetHUD extends Module {
         // Рендерим TargetHudComponent если есть активная цель или в демо режиме
         if ((currentTarget != null || demoMode) && targetHudComponent != null) {
             CustomDrawContext ctx = event.getContext();
-            
-            // Обновляем размеры окна для перетаскивания
+
             float width = mc.getWindow().getWidth() / Interface.INSTANCE.getCustomScale();
             float height = mc.getWindow().getHeight() / Interface.INSTANCE.getCustomScale();
             targetHudComponent.windowResized(width, height);
-            
+
             targetHudComponent.render(ctx);
+
+            if (mc.currentScreen instanceof ChatScreen && isDragging) {
+                Vector2f mousePos = GuiUtil.getMouse(Interface.INSTANCE.getCustomScale());
+                float newX = (float) mousePos.getX() - dragOffsetX;
+                float newY = (float) mousePos.getY() - dragOffsetY;
+                targetHudComponent.set(ctx, newX, newY, Interface.INSTANCE, width, height);
+            }
         }
     }
 
@@ -166,14 +165,12 @@ public final class TargetHUD extends Module {
                 demoTarget = mc.player;
                 setTarget(demoTarget);
             }
-            System.out.println("TargetHUD: Demo mode enabled");
         } else {
             // Закрыли чат - выключаем демо режим
             if (demoMode) {
                 demoMode = false;
                 clearTarget();
                 demoTarget = null;
-                System.out.println("TargetHUD: Demo mode disabled");
             }
         }
     }
@@ -199,38 +196,24 @@ public final class TargetHUD extends Module {
                 isDragging = true;
                 dragOffsetX = (float) mouseX - targetHudComponent.getX();
                 dragOffsetY = (float) mouseY - targetHudComponent.getY();
-                System.out.println("TargetHUD: Started dragging at (" + mouseX + ", " + mouseY + ")");
             }
         } else if (event.getAction() == 0) { // ЛКМ отпущена
             if (isDragging) {
                 isDragging = false;
                 targetHudComponent.release();
-                System.out.println("TargetHUD: Stopped dragging");
             }
-        }
-        
-        // Обновляем позицию при перетаскивании
-        if (isDragging) {
-            float newX = (float) mouseX - dragOffsetX;
-            float newY = (float) mouseY - dragOffsetY;
-            targetHudComponent.setPosition(newX, newY);
-            System.out.println("TargetHUD: Dragging to (" + newX + ", " + newY + ")");
         }
     }
 
     private void setTarget(LivingEntity target) {
         this.currentTarget = target;
         this.lastTargetTime = System.currentTimeMillis();
-        
-        System.out.println("TargetHUD: Target set to: " + target.getName().getString());
-        
+
         // Обновляем цель в TargetHudComponent
         updateTargetHudComponent(target);
     }
 
     private void clearTarget() {
-        System.out.println("TargetHUD: Target cleared");
-        
         // Очищаем цель в TargetHudComponent для анимации исчезновения
         updateTargetHudComponent(null);
         
@@ -243,9 +226,9 @@ public final class TargetHUD extends Module {
         if (targetHudComponent != null) {
             targetHudComponent.setTarget(target);
             if (target != null) {
-                System.out.println("TargetHUD: Updated TargetHudComponent with target: " + target.getName().getString());
+                // Target set
             } else {
-                System.out.println("TargetHUD: Cleared TargetHudComponent target");
+                // Target cleared
             }
         }
     }
@@ -278,6 +261,24 @@ public final class TargetHUD extends Module {
         }
         
         return false;
+    }
+
+    // ----- getters for component -----
+
+    public boolean isShowHealthBar() {
+        return showHealthBar.isEnabled();
+    }
+
+    public boolean isShowHealthText() {
+        return showHealthText.isEnabled();
+    }
+
+    public float getOpacity() {
+        return opacity.getCurrent();
+    }
+
+    public float getAnimationSpeed() {
+        return animationSpeed.getCurrent();
     }
 
     public LivingEntity getCurrentTarget() {

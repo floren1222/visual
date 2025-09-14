@@ -146,13 +146,19 @@ public final class TargetHUD extends Module {
         // Рендерим TargetHudComponent если есть активная цель или в демо режиме
         if ((currentTarget != null || demoMode) && targetHudComponent != null) {
             CustomDrawContext ctx = event.getContext();
-            
-            // Обновляем размеры окна для перетаскивания
+
             float width = mc.getWindow().getWidth() / Interface.INSTANCE.getCustomScale();
             float height = mc.getWindow().getHeight() / Interface.INSTANCE.getCustomScale();
             targetHudComponent.windowResized(width, height);
-            
+
             targetHudComponent.render(ctx);
+
+            if (mc.currentScreen instanceof ChatScreen && isDragging) {
+                Vector2f mousePos = GuiUtil.getMouse(Interface.INSTANCE.getCustomScale());
+                float newX = (float) mousePos.getX() - dragOffsetX;
+                float newY = (float) mousePos.getY() - dragOffsetY;
+                targetHudComponent.set(ctx, newX, newY, Interface.INSTANCE, width, height);
+            }
         }
     }
 
@@ -207,14 +213,6 @@ public final class TargetHUD extends Module {
                 targetHudComponent.release();
                 System.out.println("TargetHUD: Stopped dragging");
             }
-        }
-        
-        // Обновляем позицию при перетаскивании
-        if (isDragging) {
-            float newX = (float) mouseX - dragOffsetX;
-            float newY = (float) mouseY - dragOffsetY;
-            targetHudComponent.setPosition(newX, newY);
-            System.out.println("TargetHUD: Dragging to (" + newX + ", " + newY + ")");
         }
     }
 

@@ -43,7 +43,6 @@ public final class TargetHUD extends Module {
     private final NumberSetting showDuration = new NumberSetting("Время показа", 3.0f, 0.5f, 10.0f, 0.1f);
     
     // Новые настройки дизайна
-    private final BooleanSetting showArmor = new BooleanSetting("Показывать броню", "Отображать экипировку цели", true);
     private final BooleanSetting showHealthBar = new BooleanSetting("Показывать HP бар", "Отображать полосу здоровья", true);
     private final BooleanSetting showHealthText = new BooleanSetting("Показывать HP текст", "Отображать числовое значение здоровья", true);
     private final NumberSetting animationSpeed = new NumberSetting("Скорость анимации", 200.0f, 50.0f, 500.0f, 10.0f);

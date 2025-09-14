@@ -133,9 +133,15 @@ public class TargetHudComponent extends DraggableHudElement {
                 float barHeight = 4f;
                 ColorRGBA barBg = theme.getForegroundLight().mulAlpha(0.3f * fade);
 
-                ColorRGBA barColor = ColorRGBA
-                        .lerp(ColorRGBA.RED, ColorRGBA.GREEN, healthPercent)
-                        .mulAlpha(baseOpacity * fade);
+                ColorRGBA barColor;
+                if (healthPercent > 0.6f) {
+                    barColor = ColorRGBA.GREEN;
+                } else if (healthPercent > 0.2f) {
+                    barColor = ColorRGBA.YELLOW;
+                } else {
+                    barColor = ColorRGBA.RED;
+                }
+                barColor = barColor.mulAlpha(baseOpacity * fade);
 
                 ctx.drawRoundedRect(barX, barY, barFullWidth, barHeight, BorderRadius.all(1f), barBg);
 

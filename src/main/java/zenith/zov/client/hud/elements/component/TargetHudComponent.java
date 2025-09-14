@@ -14,6 +14,7 @@ import zenith.zov.client.modules.impl.render.TargetHUD;
 import zenith.zov.utility.game.player.PlayerIntersectionUtil;
 import zenith.zov.client.modules.impl.render.TargetHUD;
 
+
 import zenith.zov.utility.mixin.accessors.DrawContextAccessor;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
@@ -39,6 +40,7 @@ public class TargetHudComponent extends DraggableHudElement {
     public void tick() {
         // Настройки анимации из модуля
 
+
  
         long speed = (long) hud.getAnimationSpeed();
         healthAnimation.setDuration(speed);
@@ -55,6 +57,7 @@ public class TargetHudComponent extends DraggableHudElement {
     public void render(CustomDrawContext ctx) {
         if (this.target == null) return;
         
+
 
  
         renderTargetHud(ctx, this.target, toggleAnimation.getValue());
@@ -75,6 +78,8 @@ public class TargetHudComponent extends DraggableHudElement {
 
         // Параметры здоровья
 
+
+ 
  
         float hp = round(PlayerIntersectionUtil.getHealth(target));
         float maxHp = target.getMaxHealth();
@@ -95,6 +100,7 @@ public class TargetHudComponent extends DraggableHudElement {
 
             // Минималистичный фон с лёгкой прозрачностью
             HudStyle.drawPanel(ctx, theme, posX, posY, width, height, 6f, baseOpacity * fade);
+
 
             DrawUtil.drawBlurHud(ctx.getMatrices(), posX, posY, width, height, 20, BorderRadius.all(6), ColorRGBA.WHITE);
             ctx.drawRoundedRect(posX, posY, width, height, BorderRadius.all(6), bgColor);
@@ -141,6 +147,7 @@ public class TargetHudComponent extends DraggableHudElement {
 
             // HP бар под именем
 
+
             if (hud.isShowHealthBar()) {
                 float barX = contentX;
                 float barHeight = 3f;
@@ -160,6 +167,7 @@ public class TargetHudComponent extends DraggableHudElement {
                 if (animatedHealth > 0) {
                     ctx.drawRoundedRect(barX, barY, animatedHealth, barHeight, BorderRadius.all(1.5f), barColor);
 
+
                 }
 
                 if (showHealthText) {
@@ -167,6 +175,7 @@ public class TargetHudComponent extends DraggableHudElement {
                     float textY = barY + barHeight / 2f - hpFont.height() / 2f;
                     ctx.drawText(hpFont, hpText, textX, textY, accentColor);
                 }
+
 
                 if (showHealthText) {
                     float textX = barX + barFullWidth + padding / 2f;
@@ -209,6 +218,7 @@ public class TargetHudComponent extends DraggableHudElement {
                 ctx.drawText(xFont, "M", iconX + (boxSizeItem - xFont.width("X")) / 2,
                         iconY + (boxSizeItem - xFont.height()) / 2, emptyColor);
  
+ 
             }
         }
         ctx.popMatrix();
@@ -228,6 +238,13 @@ public class TargetHudComponent extends DraggableHudElement {
         } else {
             if (target != this.target) {
                 this.target = target;
+
+                toggleAnimation.reset();
+
+                // Начинаем анимацию появления
+                toggleAnimation.update(1);
+            } else {
+                // Та же цель - продолжаем анимацию появления
 
                 toggleAnimation.reset();
 

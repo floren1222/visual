@@ -79,10 +79,9 @@ public class TargetHudComponent extends DraggableHudElement {
             ctx.getMatrices().scale(animation, animation, 1f);
             ctx.getMatrices().translate(-(posX + width / 2f), -(posY + height / 2f), 0f);
 
-            // Блюр и фон
-            DrawUtil.drawBlurHud(ctx.getMatrices(), posX, posY, width, height, 22, BorderRadius.all(6), ColorRGBA.WHITE);
+            // Фон и тонкая рамка
             ctx.drawRoundedRect(posX, posY, width, height, BorderRadius.all(6), bgColor);
-            ctx.drawRoundedBorder(posX, posY, width, height, 0.1f, BorderRadius.all(6), accentColor.mulAlpha(0.5f));
+            ctx.drawRoundedBorder(posX, posY, width, height, 0.5f, BorderRadius.all(6), accentColor.mulAlpha(0.5f));
 
             float barFullWidth = width - padding * 2 - headSize - padding - (showHealthText ? hpTextWidth + padding : 0f);
 
@@ -125,7 +124,7 @@ public class TargetHudComponent extends DraggableHudElement {
             if (showHealthBar) {
                 float barX = headX + headSize + padding;
                 float barY = headY + 7f;
-                float barHeight = 3f;
+                float barHeight = 2f;
                 ColorRGBA barBg = theme.getForegroundLight().mulAlpha(0.3f);
                 ColorRGBA barColor = ColorRGBA.lerp(ColorRGBA.RED, accentColor, healthPercent);
 

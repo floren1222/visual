@@ -11,6 +11,7 @@ import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 import java.util.Locale;
 
@@ -52,10 +53,9 @@ public class InformationComponent extends DraggableHudElement {
 
         this.width = totalWidth;
         this.height = totalHeight;
-        DrawUtil.drawBlurHud(ctx.getMatrices(),x, y, coordsWidth+speedWidth, totalHeight,21,BorderRadius.all(4),ColorRGBA.WHITE);
-
-        ctx.drawRoundedRect(x, y, coordsWidth, totalHeight, BorderRadius.left(borderRadius, borderRadius), highlightBgColor);
-        ctx.drawRoundedRect(x + coordsWidth, y, speedWidth, totalHeight, BorderRadius.right(borderRadius, borderRadius), mainBgColor);
+        HudStyle.drawPanel(ctx, theme, x, y, coordsWidth+speedWidth, totalHeight, 4f, 0.6f);
+        ctx.drawRoundedRect(x, y, coordsWidth, totalHeight, BorderRadius.left(borderRadius, borderRadius), highlightBgColor.mulAlpha(0.6f));
+        ctx.drawRoundedRect(x + coordsWidth, y, speedWidth, totalHeight, BorderRadius.right(borderRadius, borderRadius), mainBgColor.mulAlpha(0.6f));
 
         ctx.enableScissor((int) x, (int) y, (int) (x +coordsWidth), (int) (y +height));
         float currentX = x + cellPadding;
@@ -80,8 +80,6 @@ public class InformationComponent extends DraggableHudElement {
         ctx.disableScissor();
 
         ctx.drawRoundedBorder(x, y, coordsWidth+speedWidth, totalHeight,0.1f,BorderRadius.all(4),theme.getForegroundStroke());
-
-        DrawUtil.drawRoundedCorner(ctx.getMatrices(), x, y, coordsWidth+speedWidth, totalHeight,0.1f,12,theme.getColor(),BorderRadius.all(4));
 
     }
 

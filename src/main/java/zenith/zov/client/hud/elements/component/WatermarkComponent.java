@@ -11,7 +11,7 @@ import zenith.zov.utility.game.other.TextUtil;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
-import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +56,7 @@ public class WatermarkComponent extends DraggableHudElement {
         this.width = totalWidth;
         this.height = totalHeight;
 
-        DrawUtil.drawBlurHud(ctx.getMatrices(),x, y, width,height,21,BorderRadius.all(4),ColorRGBA.WHITE);
+        HudStyle.drawPanel(ctx, theme, x, y, width, height, 4f, 0.6f);
 
 
         float currentX = this.x;
@@ -73,8 +73,6 @@ public class WatermarkComponent extends DraggableHudElement {
             currentX += el.getWidth() ;
         }
         ctx.drawRoundedBorder(x, y,totalWidth, totalHeight,0.01f,BorderRadius.all(4),theme.getForegroundStroke());
-
-        DrawUtil.drawRoundedCorner(ctx.getMatrices(), x, y,totalWidth, totalHeight,0.01f,12f,theme.getColor(),BorderRadius.all(4));
 
     }
 

@@ -3,7 +3,6 @@ package zenith.zov.client.hud.elements.component;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 import zenith.zov.Zenith;
 import zenith.zov.base.animations.base.Animation;
 import zenith.zov.base.animations.base.Easing;
@@ -13,13 +12,14 @@ import zenith.zov.base.theme.Theme;
 import zenith.zov.client.hud.elements.draggable.DraggableHudElement;
 import zenith.zov.client.modules.impl.render.TargetHUD;
 import zenith.zov.utility.game.player.PlayerIntersectionUtil;
+import zenith.zov.client.modules.impl.render.TargetHUD;
+
 import zenith.zov.utility.mixin.accessors.DrawContextAccessor;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
-
-import java.util.List;
+import zenith.zov.client.hud.style.HudStyle;
 
 import static java.lang.Math.round;
 
@@ -37,10 +37,16 @@ public class TargetHudComponent extends DraggableHudElement {
 
     @Override
     public void tick() {
+        // Настройки анимации из модуля
+
+ 
         long speed = (long) hud.getAnimationSpeed();
         healthAnimation.setDuration(speed);
         toggleAnimation.setDuration(speed);
 
+        // Обновляем анимации
+
+ 
         healthAnimation.update();
         toggleAnimation.update();
     }
@@ -48,6 +54,9 @@ public class TargetHudComponent extends DraggableHudElement {
     @Override
     public void render(CustomDrawContext ctx) {
         if (this.target == null) return;
+        
+
+ 
         renderTargetHud(ctx, this.target, toggleAnimation.getValue());
     }
 
@@ -64,6 +73,9 @@ public class TargetHudComponent extends DraggableHudElement {
         ColorRGBA accentColor = theme.getColor().mulAlpha(baseOpacity * fade);
         ColorRGBA textColor = theme.getWhite().mulAlpha(fade);
 
+        // Параметры здоровья
+
+ 
         float hp = round(PlayerIntersectionUtil.getHealth(target));
         float maxHp = target.getMaxHealth();
         float healthPercent = hp / maxHp;
@@ -81,6 +93,9 @@ public class TargetHudComponent extends DraggableHudElement {
             ctx.getMatrices().scale(animation, animation, 1f);
             ctx.getMatrices().translate(-(posX + width / 2f), -(posY + height / 2f), 0f);
 
+            // Минималистичный фон с лёгкой прозрачностью
+            HudStyle.drawPanel(ctx, theme, posX, posY, width, height, 6f, baseOpacity * fade);
+
             DrawUtil.drawBlurHud(ctx.getMatrices(), posX, posY, width, height, 20, BorderRadius.all(6), ColorRGBA.WHITE);
             ctx.drawRoundedRect(posX, posY, width, height, BorderRadius.all(6), bgColor);
             ctx.drawRoundedBorder(posX, posY, width, height, 0.5f, BorderRadius.all(6), accentColor.mulAlpha(0.3f));
@@ -94,6 +109,9 @@ public class TargetHudComponent extends DraggableHudElement {
 
             float animatedHealth = healthAnimation.update(barFullWidth * healthPercent);
 
+            // Аватар игрока (компактный)
+
+ 
             if (target instanceof PlayerEntity player) {
                 DrawUtil.drawPlayerHeadWithRoundedShader(
                         ctx.getMatrices(),
@@ -121,6 +139,8 @@ public class TargetHudComponent extends DraggableHudElement {
 
             ctx.drawText(nameFont, displayName, contentX, posY + padding, textColor);
 
+            // HP бар под именем
+
             if (hud.isShowHealthBar()) {
                 float barX = contentX;
                 float barHeight = 3f;
@@ -139,6 +159,7 @@ public class TargetHudComponent extends DraggableHudElement {
 
                 if (animatedHealth > 0) {
                     ctx.drawRoundedRect(barX, barY, animatedHealth, barHeight, BorderRadius.all(1.5f), barColor);
+
                 }
 
                 if (showHealthText) {
@@ -146,7 +167,12 @@ public class TargetHudComponent extends DraggableHudElement {
                     float textY = barY + barHeight / 2f - hpFont.height() / 2f;
                     ctx.drawText(hpFont, hpText, textX, textY, accentColor);
                 }
-            }
+
+                if (showHealthText) {
+                    float textX = barX + barFullWidth + padding / 2f;
+                    float textY = barY + barHeight / 2f - hpFont.height() / 2f;
+                    ctx.drawText(hpFont, hpText, textX, textY, accentColor);
+                }
 
             if (target instanceof PlayerEntity player) {
                 drawArmor(ctx, player, contentX, posY + padding + 10f, headSize, padding, fontSize);
@@ -182,15 +208,19 @@ public class TargetHudComponent extends DraggableHudElement {
                 ColorRGBA emptyColor = Zenith.getInstance().getThemeManager().getCurrentTheme().getGrayLight();
                 ctx.drawText(xFont, "M", iconX + (boxSizeItem - xFont.width("X")) / 2,
                         iconY + (boxSizeItem - xFont.height()) / 2, emptyColor);
+ 
             }
-            iconX += boxSizeItem + paddingItem;
         }
+        ctx.popMatrix();
     }
 
     public void setTarget(LivingEntity target) {
         if (target == null) {
             if (this.target != null) {
                 toggleAnimation.update(0);
+
+                // Устанавливаем target в null только когда анимация завершится
+
                 if (toggleAnimation.getValue() == 0) {
                     this.target = null;
                 }
@@ -198,6 +228,14 @@ public class TargetHudComponent extends DraggableHudElement {
         } else {
             if (target != this.target) {
                 this.target = target;
+
+                toggleAnimation.reset();
+
+                // Начинаем анимацию появления
+                toggleAnimation.update(1);
+            } else {
+                // Та же цель - продолжаем анимацию появления
+
                 toggleAnimation.reset();
                 toggleAnimation.update(1);
             } else {

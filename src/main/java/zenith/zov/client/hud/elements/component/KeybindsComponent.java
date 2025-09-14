@@ -13,7 +13,7 @@ import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.client.modules.api.Module;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
-import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 import java.util.*;
 
@@ -64,9 +64,7 @@ public class KeybindsComponent extends DraggableHudElement {
 
 
             BorderRadius radius6 = BorderRadius.all(6);
-            DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, height, 21, BorderRadius.all(4), ColorRGBA.WHITE);
-
-            ctx.drawRoundedRect(x, y, width, height, radius6, theme.getForegroundLight());
+            HudStyle.drawPanel(ctx, theme, x, y, width, height, 6f, 0.6f);
 
             ctx.drawText(iconFont, "L", x + 8, y + (18 - iconFont.height()) / 2, theme.getColor());
             ctx.drawText(iconFont, "M", x + width - 8 - iconFont.width("M"), y + (18 - iconFont.height()) / 2, theme.getWhiteGray());
@@ -96,8 +94,6 @@ public class KeybindsComponent extends DraggableHudElement {
             ctx.disableScissor();
         }
         ctx.drawRoundedBorder(x, y, width, height, 0.1f, BorderRadius.all(4), theme.getForegroundStroke());
-
-        DrawUtil.drawRoundedCorner(ctx.getMatrices(), x, y, width, height, 0.1f, Math.min(20, Math.max(12, height / 2.5f)), theme.getColor(), BorderRadius.all(4));
 
         ctx.popMatrix();
 

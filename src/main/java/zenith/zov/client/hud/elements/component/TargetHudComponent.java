@@ -87,14 +87,16 @@ public class TargetHudComponent extends DraggableHudElement {
             // Блюр и фон с тонкой рамкой
             DrawUtil.drawBlurHud(ctx.getMatrices(), posX, posY, width, height, 20, BorderRadius.all(6), ColorRGBA.WHITE);
             ctx.drawRoundedRect(posX, posY, width, height, BorderRadius.all(6), bgColor);
-            ctx.drawRoundedBorder(posX, posY, width, height, 0.5f, BorderRadius.all(6), accentColor.mulAlpha(0.5f));
-
-            float barFullWidth = width - padding * 2 - headSize - padding - (showHealthText ? hpTextWidth + padding : 0f);
-
-            float animatedHealth = healthAnimation.update(barFullWidth * healthPercent);
+            ctx.drawRoundedBorder(posX, posY, width, height, 0.5f, BorderRadius.all(6), accentColor.mulAlpha(0.3f));
 
             float headX = posX + padding;
             float headY = posY + (height - headSize) / 2f;
+
+            float contentX = headX + headSize + padding;
+            float contentRight = posX + width - padding - (showHealthText ? hpTextWidth + padding : 0f);
+            float barFullWidth = contentRight - contentX;
+
+            float animatedHealth = healthAnimation.update(barFullWidth * healthPercent);
 
             // Аватар игрока (компактный)
             if (target instanceof PlayerEntity player) {
@@ -123,33 +125,29 @@ public class TargetHudComponent extends DraggableHudElement {
                 displayName += "...";
             }
 
-            ctx.drawText(nameFont, displayName, headX + headSize + padding, headY - 2f, textColor);
+            ctx.drawText(nameFont, displayName, contentX, posY + padding, textColor);
 
-            // HP бар (под именем) с красивым дизайном - только если включен
-            boolean showHealthBar = hud.isShowHealthBar();
-            if (showHealthBar) {
-                float barX = headX + headSize + padding;
-                float barY = headY + 7f;
-                float barHeight = 4f;
-                ColorRGBA barBg = theme.getForegroundLight().mulAlpha(0.3f * fade);
+            // HP бар под именем
+            if (hud.isShowHealthBar()) {
+                float barX = contentX;
+                float barHeight = 3f;
+                float barY = posY + height - padding - barHeight;
+                ColorRGBA barBg = theme.getForegroundLight().mulAlpha(0.25f * fade);
 
                 ColorRGBA barColor;
-                if (healthPercent > 0.6f) {
-                    barColor = ColorRGBA.GREEN;
-                } else if (healthPercent > 0.2f) {
-                    barColor = ColorRGBA.YELLOW;
+                if (healthPercent > 0.5f) {
+                    barColor = ColorRGBA.lerp(ColorRGBA.YELLOW, ColorRGBA.GREEN, (healthPercent - 0.5f) / 0.5f);
                 } else {
-                    barColor = ColorRGBA.RED;
+                    barColor = ColorRGBA.lerp(ColorRGBA.RED, ColorRGBA.YELLOW, healthPercent / 0.5f);
                 }
                 barColor = barColor.mulAlpha(baseOpacity * fade);
 
-                ctx.drawRoundedRect(barX, barY, barFullWidth, barHeight, BorderRadius.all(1f), barBg);
+                ctx.drawRoundedRect(barX, barY, barFullWidth, barHeight, BorderRadius.all(1.5f), barBg);
 
                 if (animatedHealth > 0) {
-                    ctx.drawRoundedRect(barX, barY, animatedHealth, barHeight, BorderRadius.all(1f), barColor);
+                    ctx.drawRoundedRect(barX, barY, animatedHealth, barHeight, BorderRadius.all(1.5f), barColor);
                 }
 
-                // Текст здоровья справа от полосы
                 if (showHealthText) {
                     float textX = barX + barFullWidth + padding / 2f;
                     float textY = barY + barHeight / 2f - hpFont.height() / 2f;

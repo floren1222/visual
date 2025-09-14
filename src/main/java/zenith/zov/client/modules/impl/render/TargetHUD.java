@@ -143,14 +143,14 @@ public final class TargetHUD extends Module {
             float height = mc.getWindow().getHeight() / Interface.INSTANCE.getCustomScale();
             targetHudComponent.windowResized(width, height);
 
-            targetHudComponent.render(ctx);
-
             if (mc.currentScreen instanceof ChatScreen && isDragging) {
                 Vector2f mousePos = GuiUtil.getMouse(Interface.INSTANCE.getCustomScale());
                 float newX = (float) mousePos.getX() - dragOffsetX;
                 float newY = (float) mousePos.getY() - dragOffsetY;
                 targetHudComponent.set(ctx, newX, newY, Interface.INSTANCE, width, height);
             }
+
+            targetHudComponent.render(ctx);
         }
     }
 

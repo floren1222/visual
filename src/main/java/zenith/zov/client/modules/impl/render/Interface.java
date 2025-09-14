@@ -167,7 +167,14 @@ public final class Interface extends Module {
 
         float width = mc.getWindow().getWidth() / getCustomScale();
         float height = mc.getWindow().getHeight() / getCustomScale();
-        
+
+        if (mc.currentScreen instanceof ChatScreen && draggingElement != null) {
+            Vector2f mousePos = GuiUtil.getMouse(getCustomScale());
+            double mouseX = mousePos.getX();
+            double mouseY = mousePos.getY();
+            draggingElement.set(ctx, (float) mouseX - dragOffsetX, (float) mouseY - dragOffsetY, this, width, height);
+        }
+
         if (!mc.options.hudHidden) {
             for (int i = 0; i < elements.size(); i++) {
                 DraggableHudElement element = elements.get(i);
@@ -190,17 +197,6 @@ public final class Interface extends Module {
         } else {
             System.out.println("Interface: HUD is hidden by game options");
         }
-        if ((mc.currentScreen instanceof ChatScreen)) {
-
-            if (draggingElement != null) {
-                Vector2f mousePos = GuiUtil.getMouse(getCustomScale());
-                double mouseX = mousePos.getX();
-                double mouseY = mousePos.getY();
-                draggingElement.set(ctx, (float) mouseX - dragOffsetX, (float) mouseY - dragOffsetY, this,width,height);
-
-            }
-        }
-
 
     }
 

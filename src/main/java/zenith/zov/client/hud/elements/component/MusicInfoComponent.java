@@ -19,6 +19,7 @@ import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 
 import java.util.*;
@@ -100,13 +101,10 @@ public class MusicInfoComponent extends DraggableHudElement {
                 ctx.getMatrices().scale(exit.getValue(), exit.getValue(), 1);
                 ctx.getMatrices().translate(-scaleX, -scaleY, 1);
             }
-            DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, height, 21, BorderRadius.all(4), ColorRGBA.WHITE);
+            HudStyle.drawPanel(ctx, theme, x, y, coverBoxSize + infoBoxWidth, height, 4f, 0.6f);
 
-            ctx.drawRoundedRect(x, y, coverBoxSize, height, BorderRadius.left(borderRadius, borderRadius), bgLeft);
-            ctx.drawRoundedRect(x + coverBoxSize, y, infoBoxWidth, height, BorderRadius.right(borderRadius, borderRadius), bgRight);
-            ctx.drawRoundedBorder(x, y, coverBoxSize + infoBoxWidth, height, 0.1f, BorderRadius.all(4), theme.getForegroundStroke());
-
-            DrawUtil.drawRoundedCorner(ctx.getMatrices(), x, y, coverBoxSize + infoBoxWidth, height, 0.1f, 15f, theme.getColor(), BorderRadius.all(4));
+            ctx.drawRoundedRect(x, y, coverBoxSize, height, BorderRadius.left(borderRadius, borderRadius), bgLeft.mulAlpha(0.6f));
+            ctx.drawRoundedRect(x + coverBoxSize, y, infoBoxWidth, height, BorderRadius.right(borderRadius, borderRadius), bgRight.mulAlpha(0.6f));
 
 
             float imagePadding = 4f;

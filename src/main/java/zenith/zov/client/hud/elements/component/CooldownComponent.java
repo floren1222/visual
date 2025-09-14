@@ -25,6 +25,7 @@ import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -230,10 +231,7 @@ public class CooldownComponent extends DraggableHudElement {
             ctx.getMatrices().translate(-(x + width / 2), -(y + height / 2), 0);
 
 
-            BorderRadius radius6 = BorderRadius.all(6);
-
-            DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, height, 21, BorderRadius.all(4), ColorRGBA.WHITE);
-            ctx.drawRoundedRect(x, y, width, height, radius6, theme.getForegroundLight());
+            HudStyle.drawPanel(ctx, theme, x, y, width, height, 6f, 0.6f);
 
             ctx.drawText(iconFont, "N", x + 8, y + (18 - iconFont.height()) / 2, theme.getColor());
             ctx.drawText(iconFont, "M", x + width - 8 - iconFont.width("M"), y + (18 - iconFont.height()) / 2, theme.getWhiteGray());

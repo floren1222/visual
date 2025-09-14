@@ -24,19 +24,22 @@ import static java.lang.Math.round;
 
 public class TargetHudComponent extends DraggableHudElement {
 
-    private final Animation healthAnimation = new Animation(200, Easing.LINEAR);
+    private final Animation healthAnimation = new Animation(200, Easing.QUAD_OUT);
     private final Animation toggleAnimation = new Animation(200, Easing.QUAD_IN_OUT);
 
     private LivingEntity target;
 
     public TargetHudComponent(String name, float initialX, float initialY, float windowWidth, float windowHeight, float offsetX, float offsetY, Align align) {
-        super(name,initialX, initialY,windowWidth,windowHeight,offsetX,offsetY,align);
-
+        super(name, initialX, initialY, windowWidth, windowHeight, offsetX, offsetY, align);
     }
 
     @Override
     public void tick() {
-        // Обновляем анимации
+        TargetHUD hud = TargetHUD.INSTANCE;
+        long speed = (long) hud.getAnimationSpeed();
+        healthAnimation.setDuration(speed);
+        toggleAnimation.setDuration(speed);
+
         healthAnimation.update();
         toggleAnimation.update();
     }
@@ -44,7 +47,6 @@ public class TargetHudComponent extends DraggableHudElement {
     @Override
     public void render(CustomDrawContext ctx) {
         if (this.target == null) return;
-        
         renderTargetHud(ctx, this.target, toggleAnimation.getValue());
     }
 
@@ -55,37 +57,43 @@ public class TargetHudComponent extends DraggableHudElement {
         float fontSize = 7f;
 
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
-        float opacity = 0.75f; // Будет получать из настроек модуля
-        ColorRGBA bgColor = theme.getBackgroundColor().mulAlpha(opacity);
-        ColorRGBA accentColor = theme.getColor().mulAlpha(opacity);
-        ColorRGBA textColor = theme.getWhite();
+        TargetHUD hud = TargetHUD.INSTANCE;
+        float fade = animation;
+        float baseOpacity = hud.getOpacity();
+        ColorRGBA bgColor = theme.getBackgroundColor().mulAlpha(baseOpacity * fade);
+        ColorRGBA accentColor = theme.getColor().mulAlpha(baseOpacity * fade);
+        ColorRGBA textColor = theme.getWhite().mulAlpha(fade);
+
+        float hp = round(PlayerIntersectionUtil.getHealth(target));
+        float maxHp = target.getMaxHealth();
+        float healthPercent = hp / maxHp;
+        boolean showHealthText = hud.isShowHealthText();
+        Font hpFont = Fonts.MEDIUM.getFont(fontSize);
+        String hpText = (int) hp + "";
+        float hpTextWidth = showHealthText ? hpFont.width(hpText) : 0f;
 
         this.width = width;
         this.height = height;
 
         ctx.pushMatrix();
         {
-            // Анимация появления
             ctx.getMatrices().translate(posX + width / 2f, posY + height / 2f, 0f);
             ctx.getMatrices().scale(animation, animation, 1f);
             ctx.getMatrices().translate(-(posX + width / 2f), -(posY + height / 2f), 0f);
 
-            // Простой полупрозрачный фон
+            DrawUtil.drawBlurHud(ctx.getMatrices(), posX, posY, width, height, 20, BorderRadius.all(6), ColorRGBA.WHITE);
             ctx.drawRoundedRect(posX, posY, width, height, BorderRadius.all(6), bgColor);
-
-
-
-            float hp = round(PlayerIntersectionUtil.getHealth(target));
-            float maxHp = target.getMaxHealth();
-            float healthPercent = hp / target.getMaxHealth();
-            float barFullWidth = width - padding * 2 - headSize - padding * 2 - 25f; // -25f для HP текста
-
-            float animatedHealth = healthAnimation.update(barFullWidth * healthPercent);
+            ctx.drawRoundedBorder(posX, posY, width, height, 0.5f, BorderRadius.all(6), accentColor.mulAlpha(0.3f));
 
             float headX = posX + padding;
             float headY = posY + (height - headSize) / 2f;
 
-            // Аватар игрока (компактный)
+            float contentX = headX + headSize + padding;
+            float contentRight = posX + width - padding - (showHealthText ? hpTextWidth + padding : 0f);
+            float barFullWidth = contentRight - contentX;
+
+            float animatedHealth = healthAnimation.update(barFullWidth * healthPercent);
+
             if (target instanceof PlayerEntity player) {
                 DrawUtil.drawPlayerHeadWithRoundedShader(
                         ctx.getMatrices(),
@@ -99,7 +107,6 @@ public class TargetHudComponent extends DraggableHudElement {
                         headY + headSize / 2f - qFont.height() / 2f, textColor);
             }
 
-            // Имя игрока (одна строка)
             Font nameFont = Fonts.MEDIUM.getFont(fontSize);
             String name = target.getName().getString();
 
@@ -112,29 +119,37 @@ public class TargetHudComponent extends DraggableHudElement {
                 displayName += "...";
             }
 
-            ctx.drawText(nameFont, displayName, headX + headSize + padding, headY - 2f, textColor);
+            ctx.drawText(nameFont, displayName, contentX, posY + padding, textColor);
 
-            // HP текст (справа) - только если включен
-            boolean showHealthText = true; // Будет получать из настроек модуля
-            if (showHealthText) {
-                String hpText = (int) round(hp) + "";
-                Font hpFont = Fonts.MEDIUM.getFont(fontSize);
-                ctx.drawText(hpFont, hpText, posX + width - padding - hpFont.width(hpText), headY - 2f, accentColor);
-            }
+            if (hud.isShowHealthBar()) {
+                float barX = contentX;
+                float barHeight = 3f;
+                float barY = posY + height - padding - barHeight;
+                ColorRGBA barBg = theme.getForegroundLight().mulAlpha(0.25f * fade);
 
-            // HP бар (под именем) с красивым дизайном - только если включен
-            boolean showHealthBar = true; // Будет получать из настроек модуля
-            if (showHealthBar) {
-                float barX = headX + headSize + padding;
-                float barY = headY + 7f;
-                float barHeight = 2f;
-                ColorRGBA barBg = theme.getForegroundLight().mulAlpha(0.3f);
+                ColorRGBA barColor;
+                if (healthPercent > 0.5f) {
+                    barColor = ColorRGBA.lerp(ColorRGBA.YELLOW, ColorRGBA.GREEN, (healthPercent - 0.5f) / 0.5f);
+                } else {
+                    barColor = ColorRGBA.lerp(ColorRGBA.RED, ColorRGBA.YELLOW, healthPercent / 0.5f);
+                }
+                barColor = barColor.mulAlpha(baseOpacity * fade);
 
-                ctx.drawRoundedRect(barX, barY, barFullWidth, barHeight, BorderRadius.all(1f), barBg);
+                ctx.drawRoundedRect(barX, barY, barFullWidth, barHeight, BorderRadius.all(1.5f), barBg);
 
                 if (animatedHealth > 0) {
-                    ctx.drawRoundedRect(barX, barY, animatedHealth, barHeight, BorderRadius.all(1f), accentColor);
+                    ctx.drawRoundedRect(barX, barY, animatedHealth, barHeight, BorderRadius.all(1.5f), barColor);
                 }
+
+                if (showHealthText) {
+                    float textX = barX + barFullWidth + padding / 2f;
+                    float textY = barY + barHeight / 2f - hpFont.height() / 2f;
+                    ctx.drawText(hpFont, hpText, textX, textY, accentColor);
+                }
+            }
+
+            if (target instanceof PlayerEntity player) {
+                drawArmor(ctx, player, contentX, posY + padding + 10f, headSize, padding, fontSize);
             }
         }
         ctx.popMatrix();
@@ -153,7 +168,7 @@ public class TargetHudComponent extends DraggableHudElement {
                 player.getOffHandStack(),
                 armor.get(3), armor.get(2), armor.get(1), armor.get(0)
         };
-        
+
         for (ItemStack stack : items) {
             if (!stack.isEmpty()) {
                 ctx.getMatrices().push();
@@ -165,41 +180,32 @@ public class TargetHudComponent extends DraggableHudElement {
                 ctx.getMatrices().pop();
             } else {
                 ColorRGBA emptyColor = Zenith.getInstance().getThemeManager().getCurrentTheme().getGrayLight();
-                ctx.drawText(xFont, "M", iconX + (boxSizeItem - xFont.width("X")) / 2, 
-                    iconY + (boxSizeItem - xFont.height()) / 2, emptyColor);
+                ctx.drawText(xFont, "M", iconX + (boxSizeItem - xFont.width("X")) / 2,
+                        iconY + (boxSizeItem - xFont.height()) / 2, emptyColor);
             }
             iconX += boxSizeItem + paddingItem;
         }
     }
 
-
     public void setTarget(LivingEntity target) {
         if (target == null) {
-            // Начинаем анимацию исчезновения
             if (this.target != null) {
                 toggleAnimation.update(0);
-
-                // Устанавливаем target в null только когда анимация завершится
                 if (toggleAnimation.getValue() == 0) {
                     this.target = null;
                 }
             }
         } else {
             if (target != this.target) {
-                // Новая цель - сбрасываем анимации и начинаем новые
                 this.target = target;
-
                 toggleAnimation.reset();
-
-                // Начинаем анимацию появления
                 toggleAnimation.update(1);
             } else {
-                // Та же цель - продолжаем анимацию появления
                 toggleAnimation.update(1);
             }
         }
     }
-    
+
     public LivingEntity getTarget() {
         return this.target;
     }

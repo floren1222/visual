@@ -263,6 +263,24 @@ public final class TargetHUD extends Module {
         return false;
     }
 
+    // ----- getters for component -----
+
+    public boolean isShowHealthBar() {
+        return showHealthBar.isEnabled();
+    }
+
+    public boolean isShowHealthText() {
+        return showHealthText.isEnabled();
+    }
+
+    public float getOpacity() {
+        return opacity.getCurrent();
+    }
+
+    public float getAnimationSpeed() {
+        return animationSpeed.getCurrent();
+    }
+
     public LivingEntity getCurrentTarget() {
         return currentTarget;
     }

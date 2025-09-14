@@ -11,6 +11,7 @@ import zenith.zov.base.font.Fonts;
 import zenith.zov.base.theme.Theme;
 import zenith.zov.client.hud.elements.draggable.DraggableHudElement;
 import zenith.zov.utility.game.player.PlayerIntersectionUtil;
+import zenith.zov.client.modules.impl.render.TargetHUD;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
@@ -32,6 +33,12 @@ public class TargetHudComponent extends DraggableHudElement {
 
     @Override
     public void tick() {
+        // Настройки анимации из модуля
+        TargetHUD hud = TargetHUD.INSTANCE;
+        long speed = (long) hud.getAnimationSpeed();
+        healthAnimation.setDuration(speed);
+        toggleAnimation.setDuration(speed);
+
         // Обновляем анимации
         healthAnimation.update();
         toggleAnimation.update();
@@ -51,7 +58,8 @@ public class TargetHudComponent extends DraggableHudElement {
         float fontSize = 7f;
 
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
-        float opacity = 0.85f;
+        TargetHUD hud = TargetHUD.INSTANCE;
+        float opacity = hud.getOpacity();
         ColorRGBA bgColor = theme.getBackgroundColor().mulAlpha(opacity);
         ColorRGBA accentColor = theme.getColor().mulAlpha(opacity);
         ColorRGBA textColor = theme.getWhite();
@@ -60,7 +68,7 @@ public class TargetHudComponent extends DraggableHudElement {
         float hp = round(PlayerIntersectionUtil.getHealth(target));
         float maxHp = target.getMaxHealth();
         float healthPercent = hp / maxHp;
-        boolean showHealthText = true;
+        boolean showHealthText = hud.isShowHealthText();
         Font hpFont = Fonts.MEDIUM.getFont(fontSize);
         String hpText = (int) hp + "";
         float hpTextWidth = showHealthText ? hpFont.width(hpText) : 0f;
@@ -117,7 +125,7 @@ public class TargetHudComponent extends DraggableHudElement {
             ctx.drawText(nameFont, displayName, headX + headSize + padding, headY - 2f, textColor);
 
             // HP бар (под именем) с красивым дизайном - только если включен
-            boolean showHealthBar = true; // Будет получать из настроек модуля
+            boolean showHealthBar = hud.isShowHealthBar();
             if (showHealthBar) {
                 float barX = headX + headSize + padding;
                 float barY = headY + 7f;

@@ -11,6 +11,7 @@ import zenith.zov.base.font.Font;
 import zenith.zov.base.font.Fonts;
 import zenith.zov.base.theme.Theme;
 import zenith.zov.client.hud.elements.draggable.DraggableHudElement;
+import zenith.zov.client.modules.impl.render.TargetHUD;
 import zenith.zov.utility.game.player.PlayerIntersectionUtil;
 import zenith.zov.utility.mixin.accessors.DrawContextAccessor;
 import zenith.zov.utility.render.display.base.BorderRadius;
@@ -26,6 +27,7 @@ public class TargetHudComponent extends DraggableHudElement {
 
     private final Animation healthAnimation = new Animation(200, Easing.QUAD_OUT);
     private final Animation toggleAnimation = new Animation(200, Easing.QUAD_IN_OUT);
+    private final TargetHUD hud = TargetHUD.INSTANCE;
 
     private LivingEntity target;
 
@@ -35,7 +37,6 @@ public class TargetHudComponent extends DraggableHudElement {
 
     @Override
     public void tick() {
-        TargetHUD hud = TargetHUD.INSTANCE;
         long speed = (long) hud.getAnimationSpeed();
         healthAnimation.setDuration(speed);
         toggleAnimation.setDuration(speed);
@@ -57,7 +58,6 @@ public class TargetHudComponent extends DraggableHudElement {
         float fontSize = 7f;
 
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
-        TargetHUD hud = TargetHUD.INSTANCE;
         float fade = animation;
         float baseOpacity = hud.getOpacity();
         ColorRGBA bgColor = theme.getBackgroundColor().mulAlpha(baseOpacity * fade);

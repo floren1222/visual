@@ -155,8 +155,6 @@ public final class Interface extends Module {
 
     @EventTarget
     public void onRender(EventHudRender event) {
-        System.out.println("Interface: onRender called - enabled: " + this.isEnabled() + ", HUD hidden: " + mc.options.hudHidden + ", elements count: " + elements.size());
-        
         if (!(mc.currentScreen instanceof ChatScreen)) {
             if(draggingElement!=null){
                 draggingElement.release();
@@ -179,23 +177,16 @@ public final class Interface extends Module {
             for (int i = 0; i < elements.size(); i++) {
                 DraggableHudElement element = elements.get(i);
                 boolean shouldRender = shouldRender(element);
-                System.out.println("Interface: Element " + i + " (" + element.getName() + ") should render: " + shouldRender);
-                
                 if (!shouldRender) continue;
-
                 try {
-                    System.out.println("Interface: Rendering element " + element.getName());
                     element.render(ctx);
                 } catch (Exception e) {
-                    System.out.println("Interface: Error rendering element " + element.getName() + ": " + e.getMessage());
                     e.printStackTrace();
                 }
                 if (draggingElement != element) {
                     element.windowResized(width, height);
                 }
             }
-        } else {
-            System.out.println("Interface: HUD is hidden by game options");
         }
 
     }
@@ -204,12 +195,9 @@ public final class Interface extends Module {
     private boolean shouldRender(DraggableHudElement element) {
         int index = elements.indexOf(element);
         if (index < 0 || index >= elementsSetting.getBooleanSettings().size()) {
-            System.out.println("Interface: Element " + element.getName() + " has invalid index: " + index + " (max: " + (elementsSetting.getBooleanSettings().size() - 1) + ")");
             return false;
         }
-        boolean enabled = elementsSetting.isEnable(index);
-        System.out.println("Interface: Element " + element.getName() + " (index " + index + ") enabled: " + enabled);
-        return enabled;
+        return elementsSetting.isEnable(index);
     }
 
     @EventTarget

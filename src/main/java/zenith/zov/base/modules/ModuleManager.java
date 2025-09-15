@@ -12,6 +12,7 @@ import zenith.zov.client.modules.impl.combat.*;
 import zenith.zov.client.modules.impl.misc.*;
 import zenith.zov.client.modules.impl.movement.*;
 import zenith.zov.client.modules.impl.render.*;
+import zenith.zov.client.modules.impl.render.HitParticle;
 import zenith.zov.utility.interfaces.IMinecraft;
 import zenith.zov.client.modules.impl.player.AutoTool;
 import zenith.zov.client.modules.impl.player.AutoArmor;
@@ -62,6 +63,7 @@ public final class ModuleManager implements IMinecraft {
         registerModule(WorldTweaks.INSTANCE);
         registerModule(EntityESP.INSTANCE);
         registerModule(TargetHUD.INSTANCE);
+        registerModule(HitParticle.INSTANCE);
     }
 
     private void registerPlayer() {

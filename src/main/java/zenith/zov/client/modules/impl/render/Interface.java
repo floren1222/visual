@@ -155,8 +155,6 @@ public final class Interface extends Module {
 
     @EventTarget
     public void onRender(EventHudRender event) {
-        System.out.println("Interface: onRender called - enabled: " + this.isEnabled() + ", HUD hidden: " + mc.options.hudHidden + ", elements count: " + elements.size());
-        
         if (!(mc.currentScreen instanceof ChatScreen)) {
             if(draggingElement!=null){
                 draggingElement.release();
@@ -167,40 +165,29 @@ public final class Interface extends Module {
 
         float width = mc.getWindow().getWidth() / getCustomScale();
         float height = mc.getWindow().getHeight() / getCustomScale();
-        
+
+        if (mc.currentScreen instanceof ChatScreen && draggingElement != null) {
+            Vector2f mousePos = GuiUtil.getMouse(getCustomScale());
+            double mouseX = mousePos.getX();
+            double mouseY = mousePos.getY();
+            draggingElement.set(ctx, (float) mouseX - dragOffsetX, (float) mouseY - dragOffsetY, this, width, height);
+        }
+
         if (!mc.options.hudHidden) {
             for (int i = 0; i < elements.size(); i++) {
                 DraggableHudElement element = elements.get(i);
                 boolean shouldRender = shouldRender(element);
-                System.out.println("Interface: Element " + i + " (" + element.getName() + ") should render: " + shouldRender);
-                
                 if (!shouldRender) continue;
-
                 try {
-                    System.out.println("Interface: Rendering element " + element.getName());
                     element.render(ctx);
                 } catch (Exception e) {
-                    System.out.println("Interface: Error rendering element " + element.getName() + ": " + e.getMessage());
                     e.printStackTrace();
                 }
                 if (draggingElement != element) {
                     element.windowResized(width, height);
                 }
             }
-        } else {
-            System.out.println("Interface: HUD is hidden by game options");
         }
-        if ((mc.currentScreen instanceof ChatScreen)) {
-
-            if (draggingElement != null) {
-                Vector2f mousePos = GuiUtil.getMouse(getCustomScale());
-                double mouseX = mousePos.getX();
-                double mouseY = mousePos.getY();
-                draggingElement.set(ctx, (float) mouseX - dragOffsetX, (float) mouseY - dragOffsetY, this,width,height);
-
-            }
-        }
-
 
     }
 
@@ -208,12 +195,9 @@ public final class Interface extends Module {
     private boolean shouldRender(DraggableHudElement element) {
         int index = elements.indexOf(element);
         if (index < 0 || index >= elementsSetting.getBooleanSettings().size()) {
-            System.out.println("Interface: Element " + element.getName() + " has invalid index: " + index + " (max: " + (elementsSetting.getBooleanSettings().size() - 1) + ")");
             return false;
         }
-        boolean enabled = elementsSetting.isEnable(index);
-        System.out.println("Interface: Element " + element.getName() + " (index " + index + ") enabled: " + enabled);
-        return enabled;
+        return elementsSetting.isEnable(index);
     }
 
     @EventTarget

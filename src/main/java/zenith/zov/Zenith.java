@@ -31,6 +31,7 @@ import zenith.zov.base.notify.NotifyManager;
 import zenith.zov.base.repository.RCTRepository;
 import zenith.zov.utility.render.display.shader.DrawUtil;
 import zenith.zov.utility.render.display.shader.GlProgram;
+import zenith.zov.client.particles.ModParticles;
 
 import java.io.File;
 
@@ -107,6 +108,7 @@ public enum Zenith {
             }
         });
         DrawUtil.initializeShaders();
+        ModParticles.register();
 
     }
 

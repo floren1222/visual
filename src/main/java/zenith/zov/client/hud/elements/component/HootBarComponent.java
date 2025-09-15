@@ -24,7 +24,7 @@ import zenith.zov.utility.mixin.accessors.InGameHudAccessor;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
-import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,20 +58,13 @@ public class HootBarComponent extends DraggableHudElement {
             int k = (int) (this.mc.player.experienceLevel);
             ctx.drawText(font, String.valueOf(k), posX + width / 2 - font.width(String.valueOf(k)) / 2, posY - 15 + font.height() / 2, ColorRGBA.GREEN);
 
-            DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, height, 21, BorderRadius.all(4), ColorRGBA.WHITE);
-
-            ctx.drawRoundedRect(posX, posY, width, 24, BorderRadius.all(4), theme.getForegroundColor());
+            HudStyle.drawPanel(ctx, theme, posX, posY, width, 24, 4f, 0.6f);
             ItemStack offHand = mc.player.getOffHandStack();
             if(!offHand.isEmpty()) {
                 float offHandX=posX - height - 12;
                 float offHandY=posY;
-                DrawUtil.drawBlurHud(ctx.getMatrices(),offHandX, offHandY, height, height, 21, BorderRadius.all(4), ColorRGBA.WHITE);
-
-                ctx.drawRoundedRect(offHandX, offHandY, height, height, BorderRadius.all(4), theme.getForegroundColor());
-
+                HudStyle.drawPanel(ctx, theme, offHandX, offHandY, height, height, 4f, 0.6f);
                 ctx.drawRoundedBorder(offHandX, offHandY, height, height, 0.1f, BorderRadius.all(4), theme.getForegroundStroke());
-
-                DrawUtil.drawRoundedCorner(ctx.getMatrices(), posX - height - 12, posY, height, height, 0.1f, 15f, theme.getColor(), BorderRadius.all(4));
                 ctx.pushMatrix();
                 ctx.getMatrices().translate(offHandX + (24 - 12.8) / 2f, offHandY + (24 - 12.8) / 2f, 1);
                 ctx.getMatrices().scale(0.8f, 0.8f, 0.8f);
@@ -100,11 +93,7 @@ public class HootBarComponent extends DraggableHudElement {
             }
 
 
-            ctx.drawRoundedBorder(x, y, width, 24, 0.1f, BorderRadius.all(4), theme.getForegroundStroke());
-
-
-
-            DrawUtil.drawRoundedCorner(ctx.getMatrices(), x, y, width, 24, 0.1f, 15f, theme.getColor(), BorderRadius.all(4));
+            // panel already draws border via HudStyle
             return;
         }
 
@@ -129,20 +118,13 @@ public class HootBarComponent extends DraggableHudElement {
             int k = (int) (this.mc.player.experienceLevel);
             ctx.drawText(font, String.valueOf(k), posX + width / 2 - font.width(String.valueOf(k)) / 2, posY - 15 + font.height() / 2, ColorRGBA.GREEN);
 
-            DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, height, 21, BorderRadius.all(4), ColorRGBA.WHITE);
-
-            ctx.drawRoundedRect(posX, posY, width, 24, BorderRadius.all(4), theme.getForegroundColor());
+            HudStyle.drawPanel(ctx, theme, posX, posY, width, 24, 4f, 0.6f);
             ItemStack offHand = mc.player.getOffHandStack();
             if(!offHand.isEmpty()) {
                 float offHandX=posX - height - 12;
                 float offHandY=posY;
-                DrawUtil.drawBlurHud(ctx.getMatrices(),offHandX, offHandY, height, height, 21, BorderRadius.all(4), ColorRGBA.WHITE);
-
-                ctx.drawRoundedRect(offHandX, offHandY, height, height, BorderRadius.all(4), theme.getForegroundColor());
-
+                HudStyle.drawPanel(ctx, theme, offHandX, offHandY, height, height, 4f, 0.6f);
                 ctx.drawRoundedBorder(offHandX, offHandY, height, height, 0.1f, BorderRadius.all(4), theme.getForegroundStroke());
-
-                DrawUtil.drawRoundedCorner(ctx.getMatrices(), posX - height - 12, posY, height, height, 0.1f, 15f, theme.getColor(), BorderRadius.all(4));
                 ctx.pushMatrix();
                 ctx.getMatrices().translate(offHandX + (24 - 12.8) / 2f, offHandY + (24 - 12.8) / 2f, 1);
                 ctx.getMatrices().scale(0.8f, 0.8f, 0.8f);
@@ -171,11 +153,7 @@ public class HootBarComponent extends DraggableHudElement {
             }
 
 
-            ctx.drawRoundedBorder(x, y, width, 24, 0.1f, BorderRadius.all(4), theme.getForegroundStroke());
-
-
-
-            DrawUtil.drawRoundedCorner(ctx.getMatrices(), x, y, width, 24, 0.1f, 15f, theme.getColor(), BorderRadius.all(4));
+            // panel already draws border via HudStyle
 
         }
     }

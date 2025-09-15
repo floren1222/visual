@@ -15,7 +15,7 @@ import zenith.zov.utility.game.player.PlayerIntersectionUtil;
 import zenith.zov.client.modules.impl.render.TargetHUD;
 
 
-import zenith.zov.utility.mixin.accessors.DrawContextAccessor;
+
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
@@ -41,6 +41,7 @@ public class TargetHudComponent extends DraggableHudElement {
         // Настройки анимации из модуля
 
 
+
  
         long speed = (long) hud.getAnimationSpeed();
         healthAnimation.setDuration(speed);
@@ -59,6 +60,8 @@ public class TargetHudComponent extends DraggableHudElement {
         
 
 
+
+ 
  
         renderTargetHud(ctx, this.target, toggleAnimation.getValue());
     }
@@ -77,6 +80,7 @@ public class TargetHudComponent extends DraggableHudElement {
         ColorRGBA textColor = theme.getWhite().mulAlpha(fade);
 
         // Параметры здоровья
+
 
 
  
@@ -102,6 +106,7 @@ public class TargetHudComponent extends DraggableHudElement {
             HudStyle.drawPanel(ctx, theme, posX, posY, width, height, 6f, baseOpacity * fade);
 
 
+
             DrawUtil.drawBlurHud(ctx.getMatrices(), posX, posY, width, height, 20, BorderRadius.all(6), ColorRGBA.WHITE);
             ctx.drawRoundedRect(posX, posY, width, height, BorderRadius.all(6), bgColor);
             ctx.drawRoundedBorder(posX, posY, width, height, 0.5f, BorderRadius.all(6), accentColor.mulAlpha(0.3f));
@@ -111,6 +116,8 @@ public class TargetHudComponent extends DraggableHudElement {
 
             float contentX = headX + headSize + padding;
             float contentRight = posX + width - padding - (showHealthText ? hpTextWidth + padding : 0f);
+            float barFullWidth = Math.max(0, contentRight - contentX);
+
             float barFullWidth = contentRight - contentX;
 
             float animatedHealth = healthAnimation.update(barFullWidth * healthPercent);
@@ -146,6 +153,15 @@ public class TargetHudComponent extends DraggableHudElement {
             ctx.drawText(nameFont, displayName, contentX, posY + padding, textColor);
 
             // HP бар под именем
+            if (hud.isShowHealthBar()) {
+                float barX = contentX;
+                float barHeight = 4f;
+                float barY = posY + height - padding - barHeight;
+                ColorRGBA barBg = theme.getForegroundLight().mulAlpha(0.25f * fade);
+
+
+
+            // HP бар под именем
 
 
             if (hud.isShowHealthBar()) {
@@ -159,6 +175,22 @@ public class TargetHudComponent extends DraggableHudElement {
                     barColor = ColorRGBA.lerp(ColorRGBA.YELLOW, ColorRGBA.GREEN, (healthPercent - 0.5f) / 0.5f);
                 } else {
                     barColor = ColorRGBA.lerp(ColorRGBA.RED, ColorRGBA.YELLOW, healthPercent / 0.5f);
+                }
+                barColor = barColor.mulAlpha(baseOpacity * fade);
+
+                float radius = barHeight / 2f;
+                ctx.drawRoundedRect(barX, barY, barFullWidth, barHeight, BorderRadius.all(radius), barBg);
+
+                if (animatedHealth > 0) {
+                    ctx.drawRoundedRect(barX, barY, animatedHealth, barHeight, BorderRadius.all(radius), barColor);
+                }
+
+                if (showHealthText) {
+                    float textX = barX + barFullWidth + padding / 2f;
+                    float textY = barY + barHeight / 2f - hpFont.height() / 2f;
+                    ctx.drawText(hpFont, hpText, textX, textY, accentColor);
+                }
+
                 }
                 barColor = barColor.mulAlpha(baseOpacity * fade);
 
@@ -219,6 +251,7 @@ public class TargetHudComponent extends DraggableHudElement {
                         iconY + (boxSizeItem - xFont.height()) / 2, emptyColor);
  
  
+
             }
         }
         ctx.popMatrix();
@@ -238,6 +271,13 @@ public class TargetHudComponent extends DraggableHudElement {
         } else {
             if (target != this.target) {
                 this.target = target;
+
+                toggleAnimation.reset();
+
+                // Начинаем анимацию появления
+                toggleAnimation.update(1);
+            } else {
+                // Та же цель - продолжаем анимацию появления
 
                 toggleAnimation.reset();
 

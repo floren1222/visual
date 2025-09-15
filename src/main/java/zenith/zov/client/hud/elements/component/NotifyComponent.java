@@ -14,6 +14,7 @@ import zenith.zov.utility.game.player.PlayerInventoryUtil;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
+
 import zenith.zov.utility.render.display.shader.DrawUtil;
 import zenith.zov.client.hud.style.HudStyle;
 
@@ -55,17 +56,12 @@ public class NotifyComponent extends DraggableHudElement {
 
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
         Font textFont = Fonts.MEDIUM.getFont(6);
-        Font iconFont = Fonts.ICONS.getFont(6);
 
         float baseX = x;
         float baseY = y;
 
-                ctx.pushMatrix();
-        ctx.getMatrices().translate(x + 50, y + 9, 0);
-        ctx.getMatrices().scale(toggleAnimation.getValue(), toggleAnimation.getValue(), 1);
-        ctx.getMatrices().translate(-(x + 50), -(y + 9), 0);
-
         float notificationHeight = 18f;
+
         HudStyle.drawPanel(ctx, theme, x, y, 90, notificationHeight, 4f, 0.6f);
 
         ctx.drawRoundedRect(x, y, 16, notificationHeight, BorderRadius.left(4, 4), theme.getForegroundLight().mulAlpha(0.6f));
@@ -76,7 +72,7 @@ public class NotifyComponent extends DraggableHudElement {
         baseY += (notificationHeight + 6) * toggleAnimation.getValue();
         ctx.popMatrix();
 
-                for (BaseNotification n : notifications) {
+        for (BaseNotification n : notifications) {
             float gap = 6f;
             float offset = n.offsetAnimation.getValue() * (notificationHeight + gap);
             if (offset < 100) {

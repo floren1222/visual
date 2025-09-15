@@ -6,6 +6,7 @@ import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
 
+
  
 
 /**
@@ -32,6 +33,7 @@ public final class HudStyle {
         ColorRGBA bg = theme.getBackgroundColor().mulAlpha(opacity);
         ColorRGBA border = theme.getColor().mulAlpha(opacity);
         DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, height, 10, BorderRadius.all(radius), ColorRGBA.WHITE);
+
 
         ctx.drawRoundedRect(x, y, width, height, BorderRadius.all(radius), bg);
         ctx.drawRoundedBorder(x, y, width, height, 0.5f, BorderRadius.all(radius), border.mulAlpha(0.5f));

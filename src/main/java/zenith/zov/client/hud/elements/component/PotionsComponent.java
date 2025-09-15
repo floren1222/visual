@@ -94,6 +94,9 @@ public class PotionsComponent extends DraggableHudElement {
                 index++;
             }
         }
+
+        ctx.drawRoundedBorder(x, y,width,height,0.1f,BorderRadius.all(4),theme.getForegroundStroke());
+
         ctx.popMatrix();
     }
 

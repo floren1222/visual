@@ -72,6 +72,9 @@ public class WatermarkComponent extends DraggableHudElement {
             el.drawContent(ctx, currentX+(i==0?4:0), y, totalHeight, iconSize, iconTextSpacing, iconColor, textColor, font);
             currentX += el.getWidth() ;
         }
+
+        ctx.drawRoundedBorder(x, y,totalWidth, totalHeight,0.01f,BorderRadius.all(4),theme.getForegroundStroke());
+
     }
 
 

@@ -13,6 +13,7 @@ import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 public class InventoryComponent extends DraggableHudElement {
 
@@ -58,14 +59,13 @@ public class InventoryComponent extends DraggableHudElement {
     private void renderInventory(CustomDrawContext ctx, float animationValue) {
         if (mc.player == null) {
             Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
-            ColorRGBA bgColor = theme.getForegroundColor();
             
             ctx.getMatrices().push();
             ctx.getMatrices().translate(x + lastWidth / 2f, y + lastHeight / 2f, 0f);
             ctx.getMatrices().scale(animationValue, animationValue, 1f);
             ctx.getMatrices().translate(-(x + lastWidth / 2f), -(y + lastHeight / 2f), 0f);
             
-            ctx.drawRoundedRect(x, y, lastWidth, lastHeight, BorderRadius.all(4f), bgColor);
+            HudStyle.drawPanel(ctx, theme, x, y, lastWidth, lastHeight, 4f, 0.6f);
             
             ctx.getMatrices().pop();
             return;
@@ -95,7 +95,7 @@ public class InventoryComponent extends DraggableHudElement {
         ctx.getMatrices().translate(x + width / 2f, y + height / 2f, 0f);
         ctx.getMatrices().scale(animationValue, animationValue, 1f);
         ctx.getMatrices().translate(-(x + width / 2f), -(y + height / 2f), 0f);
-        DrawUtil.drawBlurHud(ctx.getMatrices(),x, y, width,height,21,BorderRadius.all(4),ColorRGBA.WHITE);
+        HudStyle.drawPanel(ctx, theme, x, y, width, height, 4f, 0.6f);
 
         //    ctx.drawRoundedRect(x,y,width,height, BorderRadius.all(4f), theme.getForegroundStroke());
         for (int row = 0; row < rows; row++) {

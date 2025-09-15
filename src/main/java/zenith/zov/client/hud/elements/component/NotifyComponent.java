@@ -14,7 +14,7 @@ import zenith.zov.utility.game.player.PlayerInventoryUtil;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
-import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -54,30 +54,13 @@ public class NotifyComponent extends DraggableHudElement {
 
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
         Font textFont = Fonts.MEDIUM.getFont(6);
-        Font iconFont = Fonts.ICONS.getFont(6);
 
         float baseX = x;
         float baseY = y;
 
-                ctx.pushMatrix();
-        ctx.getMatrices().translate(x + 50, y + 9, 0);
-        ctx.getMatrices().scale(toggleAnimation.getValue(), toggleAnimation.getValue(), 1);
-        ctx.getMatrices().translate(-(x + 50), -(y + 9), 0);
-
         float notificationHeight = 18f;
-        DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, 90, notificationHeight, 21, BorderRadius.all(4), ColorRGBA.WHITE);
 
-        ctx.drawRoundedRect(x, y, 90, notificationHeight, BorderRadius.all(4), theme.getForegroundColor());
-        ctx.drawRoundedRect(x, y, 16, notificationHeight, BorderRadius.left(4, 4), theme.getForegroundLight());
-        DrawUtil.drawRoundedCorner(ctx.getMatrices(), x, y, 90, notificationHeight, 0.1f,14,  theme.getColor(),BorderRadius.all(4));
-
-        ctx.drawText(iconFont, "A", x + (16 - iconFont.width("A")) / 2f + 1f, y + (notificationHeight - iconFont.height()) / 2f, theme.getColor());
-        ctx.drawText(textFont, "Пример уведомления", x + 16 + 4, y + (18 - textFont.height()) / 2f, theme.getWhite());
-
-        baseY += (notificationHeight + 6) * toggleAnimation.getValue();
-        ctx.popMatrix();
-
-                for (BaseNotification n : notifications) {
+        for (BaseNotification n : notifications) {
             float gap = 6f;
             float offset = n.offsetAnimation.getValue() * (notificationHeight + gap);
             if (offset < 100) {
@@ -150,7 +133,6 @@ public class NotifyComponent extends DraggableHudElement {
 
             
             ColorRGBA headerBg = theme.getForegroundLight();
-            ColorRGBA rowBg = theme.getForegroundColor();
             ColorRGBA primary = enabled ? theme.getColor() : theme.getGrayLight();
             ColorRGBA textColor = enabled ? theme.getWhite() : theme.getGray();
 
@@ -179,9 +161,8 @@ public class NotifyComponent extends DraggableHudElement {
             ctx.getMatrices().translate(-(x + width / 2f), -(y + notificationHeight / 2f), 0f);
 
             
-            DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, notificationHeight, 21, BorderRadius.all(borderRadius), ColorRGBA.WHITE);
-            ctx.drawRoundedRect(x, y, width, notificationHeight, BorderRadius.all(borderRadius), rowBg);
-            ctx.drawRoundedRect(x, y, iconBgWidth, notificationHeight, BorderRadius.left(borderRadius, borderRadius), headerBg);
+            HudStyle.drawPanel(ctx, theme, x, y, width, notificationHeight, borderRadius, 0.6f);
+            ctx.drawRoundedRect(x, y, iconBgWidth, notificationHeight, BorderRadius.left(borderRadius, borderRadius), headerBg.mulAlpha(0.6f));
 
             
             String icon = module.getCategory().getIcon();
@@ -218,7 +199,6 @@ public class NotifyComponent extends DraggableHudElement {
 
             
             ColorRGBA headerBg = theme.getForegroundLight();
-            ColorRGBA rowBg = theme.getForegroundColor();
             ColorRGBA primary = theme.getColor();
             ColorRGBA textColor = theme.getWhite();
 
@@ -244,9 +224,8 @@ public class NotifyComponent extends DraggableHudElement {
             ctx.getMatrices().translate(-(x + width / 2f), -(y + notificationHeight / 2f), 0f);
 
             
-            DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, notificationHeight, 21, BorderRadius.all(borderRadius), ColorRGBA.WHITE);
-            ctx.drawRoundedRect(x, y, width, notificationHeight, BorderRadius.all(borderRadius), rowBg);
-            ctx.drawRoundedRect(x, y, iconBgWidth, notificationHeight, BorderRadius.left(borderRadius, borderRadius), headerBg);
+            HudStyle.drawPanel(ctx, theme, x, y, width, notificationHeight, borderRadius, 0.6f);
+            ctx.drawRoundedRect(x, y, iconBgWidth, notificationHeight, BorderRadius.left(borderRadius, borderRadius), headerBg.mulAlpha(0.6f));
 
             
             float iconX = x + (iconBgWidth - iconFont.width(icon)) / 2f + 1f;
@@ -256,7 +235,7 @@ public class NotifyComponent extends DraggableHudElement {
             
             float textX = x + iconBgWidth + 4f;
             float textY = y + (notificationHeight - textFont.height()) / 2f;
-            ctx.drawText(textFont, text, textX, textY);
+            ctx.drawText(textFont, text.getString(), textX, textY, textColor);
 
             ctx.getMatrices().pop();
         }

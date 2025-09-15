@@ -19,6 +19,7 @@ import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -121,11 +122,9 @@ public class ScoreBoardComponent extends DraggableHudElement {
         int headerBg =mc.options.getTextBackgroundColor(0.4F); // t
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
         if(ctx instanceof CustomDrawContext context){
-            DrawUtil.drawBlurHud(ctx.getMatrices(),getX(),getY(),width,height,21,BorderRadius.all(4),ColorRGBA.WHITE);
-            context.drawRoundedRect(getX(),headerBaseY,width,14, BorderRadius.top(4,4), theme.getForegroundLight());
-            context.drawRoundedRect(getX(),headerBaseY+14,width,height-14, BorderRadius.bottom(4,4), theme.getForegroundColor());
-            DrawUtil.drawRoundedCorner(ctx.getMatrices(),x,y,width, height,0.01f,20f,theme.getColor(),BorderRadius.all(4));
-
+            HudStyle.drawPanel(context, theme, getX(), getY(), width, height, 4f, 0.6f);
+            context.drawRoundedRect(getX(),headerBaseY,width,14, BorderRadius.top(4,4), theme.getForegroundLight().mulAlpha(0.6f));
+            context.drawRoundedRect(getX(),headerBaseY+14,width,height-14, BorderRadius.bottom(4,4), theme.getForegroundColor().mulAlpha(0.6f));
         }
         this.windowResized(ctx.getScaledWindowWidth(), ctx.getScaledWindowHeight());
         // == фон заголовка и тела ==

@@ -17,6 +17,7 @@ import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.CustomDrawContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
+import zenith.zov.client.hud.style.HudStyle;
 
 import java.util.*;
 
@@ -70,8 +71,6 @@ public class PotionsComponent extends DraggableHudElement {
         ctx.pushMatrix();
 
 
-        BorderRadius radius = new BorderRadius(4, 4, 4, 4);
-
         animationVisible.update(mc.currentScreen instanceof ChatScreen || !modules.isEmpty());
 
 
@@ -81,9 +80,7 @@ public class PotionsComponent extends DraggableHudElement {
             ctx.getMatrices().scale(animationVisible.getValue(), animationVisible.getValue(), 1);
             ctx.getMatrices().translate(-(x + width / 2), -(y + height / 2), 0);
 
-            DrawUtil.drawBlurHud(ctx.getMatrices(), x, y, width, height, 21, BorderRadius.all(4), ColorRGBA.WHITE);
-
-            ctx.drawRoundedRect(x, y, width, height, radius, theme.getForegroundLight());
+            HudStyle.drawPanel(ctx, theme, x, y, width, height, 4f, 0.6f);
             ctx.drawText(iconFont, "O", x + 8, y + (18 - iconFont.height()) / 2, theme.getColor());
             ctx.drawText(iconFont, "M", x + width - 8 - iconFont.width("M"), y + (18 - iconFont.height()) / 2, theme.getWhiteGray());
             ctx.drawText(font, "Potions", x + 8 + 8 + 2, y + (18 - font.height()) / 2, theme.getWhite());
@@ -97,10 +94,6 @@ public class PotionsComponent extends DraggableHudElement {
                 index++;
             }
         }
-        ctx.drawRoundedBorder(x, y,width,height,0.1f,BorderRadius.all(4),theme.getForegroundStroke());
-
-        DrawUtil.drawRoundedCorner(ctx.getMatrices(), x, y,width,height,0.1f,Math.min(20,Math.max(12,height/2.5f)),theme.getColor(),BorderRadius.all(4));
-
         ctx.popMatrix();
     }
 

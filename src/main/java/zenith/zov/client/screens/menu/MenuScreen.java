@@ -39,6 +39,33 @@ public class MenuScreen extends CustomScreen {
 
     private Category selectedCategory = Category.COMBAT;
 
+    private Category realSelectedCategory = Category.COMBAT;
+    private float boxX, boxY;
+    @Getter
+    @Setter
+    private int columns = 1;
+    private float boxWidth = 522;
+    private float boxHeight = 316;
+
+    private final float containerPadding = 24f;
+    private final float heroHeight = 128f;
+    private final float navHeight = 34f;
+    private final float navSpacing = 18f;
+    private final float contentBottomPadding = 24f;
+
+    private float contentStartX;
+    private float contentY;
+    private float contentWidth;
+    private float visibleContentHeight;
+    private float navX;
+    private float navY;
+    private float navWidth;
+    private float scrollThumbHeight;
+    private float scrollThumbY;
+
+    private boolean dragging;
+    private float dragOffsetX, dragOffsetY;
+
     private float boxX;
     private float boxY;
     private float boxWidth = 560f;
@@ -108,6 +135,12 @@ public class MenuScreen extends CustomScreen {
     protected void init() {
         closing = false;
 
+        animationColums.setValue(columns == 3 ? 1 : 0);
+
+        boxWidth = MathHelper.lerp(animationColums.getValue(), 560, 640);
+
+        boxHeight = MathHelper.lerp(animationColums.getValue(), 368, 420);
+
         boxX = (this.width - boxWidth) / 2f;
         boxY = (this.height - boxHeight) / 2f;
 
@@ -119,6 +152,35 @@ public class MenuScreen extends CustomScreen {
                 selectedCategory = category;
                 scrollHandler.setTargetValue(0f);
             });
+
+            this.searchField = new TextBox(new Vector2f(boxX + boxWidth - 160 - 24, boxY + 24), Fonts.MEDIUM.getFont(7), "Search", 156);
+            this.sidebarPanel = new SidebarPanel(
+                    this.sidebarAnimation,
+                    this.isSidebarExpanded,
+                    category -> {
+
+                        this.headerPanel.resetAnim(realSelectedCategory, category);
+                        realSelectedCategory = category;
+
+                        this.scrollHandler.setTargetValue(0.0F);
+                        this.searchField.setSelectAll(true);
+                        this.searchField.setSelected(true);
+                        this.searchField.keyPressed(GLFW.GLFW_KEY_BACKSPACE, 0, 0);
+                        this.searchField.setSelected(false);
+                    },
+                    () -> {
+                        this.isSidebarExpanded = !this.isSidebarExpanded;
+                        this.sidebarAnimation.animateTo(this.isSidebarExpanded ? 1f : 0f);
+                    }
+            );
+
+            this.headerPanel = new HeaderPanel(
+                    this.searchField,
+                    () -> this.columns = (this.columns % 3) + 1,
+                    () -> Zenith.getInstance().getThemeManager().switchTheme()
+            );
+        }
+        initialized = true;
 
             headerPanel = new HeaderPanel(() -> Zenith.getInstance().getThemeManager().switchTheme());
         }
@@ -155,9 +217,21 @@ public class MenuScreen extends CustomScreen {
             return;
         }
 
+        if (!initialized) return;
+
+        animationColums.update(columns == 3 ? 1 : 0);
+
+        boxWidth = MathHelper.lerp(animationColums.getValue(), 560, 640);
+
+        boxHeight = MathHelper.lerp(animationColums.getValue(), 368, 420);
+ 
+
         float progress = MathHelper.clamp(animationClose.update(closing ? 0.0F : 1.0F), 0f, 1f);
         float scale = 0.9f + 0.1f * progress;
 
+
+        progress = Math.min(Math.max(progress, 0), 1);
+        float scale = 0.88f + 0.12f * progress;
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
         MatrixStack matrices = ctx.getMatrices();
 
@@ -214,6 +288,52 @@ public class MenuScreen extends CustomScreen {
         visibleContentHeight = containerHeight - innerPadding * 2f;
         visibleContentHeight = Math.max(120f, visibleContentHeight);
 
+        ColorRGBA primary = theme.getColor().mulAlpha(progress);
+        ColorRGBA baseBg = theme.getBackgroundColor().mix(theme.getForegroundDark(), 0.35f).mulAlpha(progress);
+        ColorRGBA selectedColor = theme.getWhite().mulAlpha(progress);
+        ColorRGBA textColor = theme.getWhite().mulAlpha(progress);
+        ColorRGBA outlineColor = theme.getForegroundStroke().mulAlpha(progress);
+
+        if (Interface.INSTANCE.isBlur()) {
+            DrawUtil.drawBlur(ctx.getMatrices(), boxX, boxY, boxWidth, boxHeight, 28 * progress * progress, BorderRadius.all(18f), ColorRGBA.WHITE.mulAlpha(progress * 1.8f));
+        }
+
+        ctx.drawRoundedRect(boxX, boxY, boxWidth, boxHeight, BorderRadius.all(18f), baseBg);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), boxX, boxY, boxWidth, boxHeight, -0.1f, BorderRadius.all(18f), outlineColor);
+
+        ColorRGBA heroColor = theme.getForegroundDark().mix(primary, 0.25f).mulAlpha(progress);
+        ctx.drawRoundedRect(boxX, boxY, boxWidth, heroHeight, BorderRadius.top(18f, 18f), heroColor);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), boxX, boxY, boxWidth, heroHeight, -0.1f, BorderRadius.top(18f, 18f), outlineColor.mulAlpha(0.35f));
+
+        ctx.drawRoundedRect(boxX + containerPadding, boxY + 24f, 160f, 46f, BorderRadius.all(14f), primary.mulAlpha(0.18f));
+        ctx.drawRoundedRect(boxX + boxWidth - containerPadding - 112f, boxY + heroHeight - 52f, 112f, 40f, BorderRadius.all(14f), theme.getForegroundColor().mulAlpha(progress * 0.35f));
+
+        navX = boxX + containerPadding;
+        navWidth = boxWidth - containerPadding * 2f;
+        navY = boxY + heroHeight + navSpacing;
+
+        float navBackgroundHeight = navHeight + 24f;
+        ColorRGBA navBackground = theme.getForegroundColor().mulAlpha(progress * 0.32f);
+        ctx.drawRoundedRect(navX, navY - 12f, navWidth, navBackgroundHeight, BorderRadius.all(12f), navBackground);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), navX, navY - 12f, navWidth, navBackgroundHeight, -0.1f, BorderRadius.all(12f), outlineColor.mulAlpha(0.4f));
+
+        headerPanel.render(ctx, boxX, boxY, boxWidth, heroHeight, progress, theme, realSelectedCategory, columns);
+
+        sidebarPanel.render(ctx, navX, navY, navWidth, navHeight, progress, theme, realSelectedCategory, primary, textColor, selectedColor);
+
+        contentStartX = navX;
+        contentWidth = navWidth;
+        contentY = navY + navHeight + navSpacing;
+        visibleContentHeight = boxHeight - (contentY - boxY) - contentBottomPadding;
+        visibleContentHeight = Math.max(96f, visibleContentHeight);
+
+        ctx.drawRoundedRect(contentStartX, contentY - 16f, contentWidth, visibleContentHeight + 32f, BorderRadius.all(16f), theme.getForegroundColor().mulAlpha(progress * 0.18f));
+
+        this.scaledScissorX = (int) contentStartX;
+        this.scaledScissorY = (int) contentY;
+        this.scaledScissorEndX = (int) (contentStartX + contentWidth);
+        this.scaledScissorEndY = (int) (contentY + visibleContentHeight);
+
         scaledScissorX = (int) contentStartX;
         scaledScissorY = (int) contentY;
         scaledScissorEndX = (int) (contentStartX + contentWidth);
@@ -242,10 +362,24 @@ public class MenuScreen extends CustomScreen {
         ctx.drawRoundedRect(trackX, scrollY, scrollbarWidth, scrollHeight,
                 BorderRadius.all(scrollbarWidth / 2f), accent);
 
+        float scrollTrackWidth = 6f;
+        float visibleHeight = visibleContentHeight;
+        float scrollProgress = scrollHandler.getMax() == 0 ? 0f : (float) (scrollHandler.getValue() / scrollHandler.getMax());
+        float scrollHeight = Math.max(visibleHeight * (visibleHeight / (float) (visibleHeight + scrollHandler.getMax())), 28);
+        scrollHeight = Math.min(visibleHeight, animationScrollHeight.update(scrollHeight));
+        float denom = Math.max(1f, (visibleHeight - scrollHeight));
+        float scrollY = contentY + denom * scrollProgress;
+        scrollY = MathHelper.clamp(scrollY, contentY, contentY + visibleHeight - scrollHeight);
+
+        ctx.drawRoundedRect(contentStartX + contentWidth - scrollTrackWidth, contentY, scrollTrackWidth, visibleHeight, BorderRadius.all(2f), theme.getForegroundColor().mulAlpha(progress * 0.35f));
+        ctx.drawRoundedRect(contentStartX + contentWidth - scrollTrackWidth, scrollY, scrollTrackWidth, scrollHeight, BorderRadius.all(2f), primary.mulAlpha(progress));
+
         scrollThumbHeight = scrollHeight;
         scrollThumbY = scrollY;
 
         List<MenuPopupSetting> remove = new ArrayList<>();
+
+        List<MenuPopupSetting> removes = new ArrayList<>();
         for (MenuPopupSetting setting : popupSettings) {
             setting.render(ctx, mouseX, mouseY, progress, theme);
             if (setting.getAnimationScale().getValue() == 0f) {
@@ -292,6 +426,15 @@ public class MenuScreen extends CustomScreen {
 
             element.render(ctx, mouseX, mouseY, titleFont, x, y, moduleWidth, alpha, columnIndex);
             columnHeights[columnIndex] += element.getHeight() + padding;
+
+        if (animationChangeCategory.getValue() == 0) {
+            selectedCategory = realSelectedCategory;
+        }
+
+        if (draggingScrollbar) {
+            float newY = (float) mouseY - contentY - scrollClickOffset;
+            float scrollRatio = MathHelper.clamp(newY / denom, 0f, 1f);
+            scrollHandler.setTargetValue(-(scrollRatio * scrollHandler.getMax()));
         }
 
         scrollHandler.update();
@@ -340,6 +483,27 @@ public class MenuScreen extends CustomScreen {
             dragOffsetY = (float) mouseY - boxY;
             return;
         }
+
+        if (searchField.isSelected()) {
+            searchField.setSelected(false);
+        }
+        if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            if (MathUtil.isHovered(mouseX, mouseY, boxX, boxY, boxWidth, heroHeight * 0.65f)) {
+                dragging = true;
+                dragOffsetX = (float) mouseX - boxX;
+                dragOffsetY = (float) mouseY - boxY;
+                return;
+            }
+        }
+        //чтобы все что обрезанно не нажималось
+        if (!animationClose.isDone()) return;
+        float scrollbarX = contentStartX + contentWidth - 6f;
+        float scrollbarY = contentY;
+        float visibleHeight = visibleContentHeight;
+        if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT && visibleHeight > 0) {
+            if (MathUtil.isHovered(mouseX, mouseY, scrollbarX, scrollbarY, 6, visibleHeight)) {
+                draggingScrollbar = true;
+                scrollClickOffset = MathHelper.clamp((float) mouseY - scrollThumbY, 0f, scrollThumbHeight);
 
         float scrollbarX = contentStartX + contentWidth - 4f;
         float scrollbarY = contentY;
@@ -403,6 +567,11 @@ public class MenuScreen extends CustomScreen {
         float visibleHeight = Math.max(visibleContentHeight, 1f);
         float step = Math.max(24f, Math.min(72f, (scrollHandler.getMax() / visibleHeight) * 12f));
         scrollHandler.scroll(verticalAmount * step / 8f);
+
+        float visibleHeight = this.visibleContentHeight > 0 ? this.visibleContentHeight : boxHeight - heroHeight;
+        float baseStep = (float) Math.max(24f, Math.min(72f, (scrollHandler.getMax() / Math.max(1f, visibleHeight)) * 12));
+
+        scrollHandler.scroll(verticalAmount * baseStep / 8);
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 

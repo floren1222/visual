@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.util.math.Vector2f;
 import net.minecraft.util.math.MathHelper;
 import org.lwjgl.glfw.GLFW;
 import zenith.zov.Zenith;
@@ -13,136 +12,126 @@ import zenith.zov.base.animations.base.Easing;
 import zenith.zov.base.font.Font;
 import zenith.zov.base.font.Fonts;
 import zenith.zov.base.theme.Theme;
+import zenith.zov.client.modules.api.Category;
 import zenith.zov.client.modules.impl.render.Interface;
 import zenith.zov.client.screens.menu.elements.api.AbstractMenuElement;
 import zenith.zov.client.screens.menu.elements.impl.MenuModuleElement;
 import zenith.zov.client.screens.menu.elements.impl.MenuThemeElement;
 import zenith.zov.client.screens.menu.panels.HeaderPanel;
-import zenith.zov.client.modules.api.Category;
 import zenith.zov.client.screens.menu.panels.SidebarPanel;
 import zenith.zov.client.screens.menu.settings.api.MenuPopupSetting;
-import zenith.zov.utility.render.display.ScrollHandler;
-import zenith.zov.utility.game.other.render.CustomScreen;
 import zenith.zov.utility.game.other.MouseButton;
+import zenith.zov.utility.game.other.render.CustomScreen;
 import zenith.zov.utility.math.MathUtil;
-import zenith.zov.utility.render.display.TextBox;
+import zenith.zov.utility.render.display.ScrollHandler;
 import zenith.zov.utility.render.display.base.BorderRadius;
 import zenith.zov.utility.render.display.base.UIContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class MenuScreen extends CustomScreen {
 
     private Category selectedCategory = Category.COMBAT;
-    private Category realSelectedCategory = Category.COMBAT;
-    private float boxX, boxY;
-    @Getter
-    @Setter
-    private int columns = 1;
-    private float boxWidth = 522;
-    private float boxHeight = 316;
 
-    private boolean dragging;
-    private float dragOffsetX, dragOffsetY;
+    private float boxX;
+    private float boxY;
+    private float boxWidth = 560f;
+    private float boxHeight = 360f;
 
-    private final Animation sidebarAnimation = new Animation(300, 0f, Easing.CUBIC_IN_OUT);
-    private boolean isSidebarExpanded;
+    private final float headerHeight = 74f;
+    private final float navHeight = 34f;
+    private final float navSpacing = 18f;
+    private final float outerPadding = 28f;
+    private final float innerPadding = 20f;
+    private final float columnSpacing = 16f;
 
-    private final Animation animationClose = new Animation(300, 0f, Easing.BAKEK_SIZE);
+    private float contentStartX;
+    private float contentY;
+    private float contentWidth;
+    private float visibleContentHeight;
+    private float scrollThumbHeight;
+    private float scrollThumbY;
+
     private boolean initialized;
+    private boolean draggingWindow;
+    private boolean draggingScrollbar;
+    private float dragOffsetX;
+    private float dragOffsetY;
+    private float scrollClickOffset;
 
-    private TextBox searchField;
+    private final Animation animationClose = new Animation(280, 0f, Easing.BAKEK_SIZE);
+    private final Animation animationScrollHeight = new Animation(160, 1f, Easing.QUAD_IN_OUT);
 
     private final ScrollHandler scrollHandler = new ScrollHandler();
+
+    private HeaderPanel headerPanel;
+    private SidebarPanel sidebarPanel;
+
+    private final Set<MenuPopupSetting> popupSettings = new HashSet<>();
+    private final List<AbstractMenuElement> modules = new ArrayList<>();
+
+    private int scaledScissorX;
+    private int scaledScissorY;
+    private int scaledScissorEndX;
+    private int scaledScissorEndY;
 
     @Getter
     @Setter
     private boolean closing = false;
-    private SidebarPanel sidebarPanel;
-    private HeaderPanel headerPanel;
-
-    private int scaledScissorX = 0;
-    private int scaledScissorY = 0;
-    private int scaledScissorEndX = 2000;
-    private int scaledScissorEndY = 2000;
-
-    private final Animation animationColums;
-    private final Animation animationScrollHeight;
-    private final Animation animationChangeCategory;
-    private boolean draggingScrollbar = false;
-    private float scrollClickOffset = 0;
-
-    private Set<MenuPopupSetting> popupSettings = new HashSet<>();
-    List<AbstractMenuElement> modules = new ArrayList<>();
 
     public MenuScreen() {
-        animationColums = new Animation(300, columns == 3 ? 1 : 0, Easing.CUBIC_IN_OUT);
-        animationChangeCategory = new Animation(150, 1, Easing.CUBIC_IN_OUT);
-        animationScrollHeight = new Animation(150, 1, Easing.QUAD_IN_OUT);
+        initialize();
     }
 
     public void initialize() {
-        modules.addAll(Zenith.getInstance().getModuleManager().getModules().stream().map(MenuModuleElement::new).toList());
+        if (!modules.isEmpty()) {
+            return;
+        }
+
+        Zenith.getInstance().getModuleManager().getModules()
+                .stream()
+                .map(MenuModuleElement::new)
+                .forEach(modules::add);
+
         modules.add(new MenuThemeElement(Theme.DARK));
         modules.add(new MenuThemeElement(Theme.LIGHT));
         modules.add(new MenuThemeElement(Theme.CUSTOM_THEME));
-
     }
 
     @Override
     protected void init() {
         closing = false;
-        animationColums.setValue(columns == 3 ? 1 : 0);
-
-        boxWidth = MathHelper.lerp(animationColums.getValue(), 461 + 4, 525 + 8);
-
-        boxHeight = MathHelper.lerp(animationColums.getValue(), 282, 320);
 
         boxX = (this.width - boxWidth) / 2f;
         boxY = (this.height - boxHeight) / 2f;
+
         animationClose.setValue(0f);
         animationClose.update(1f);
+
         if (!initialized) {
-            this.searchField = new TextBox(new Vector2f(boxX + boxWidth - 128 - 8, boxY + 8), Fonts.MEDIUM.getFont(7), "Search", 100);
-            this.sidebarPanel = new SidebarPanel(
-                    this.sidebarAnimation,
-                    this.isSidebarExpanded,
-                    category -> {
+            sidebarPanel = new SidebarPanel(category -> {
+                selectedCategory = category;
+                scrollHandler.setTargetValue(0f);
+            });
 
-                        this.headerPanel.resetAnim(realSelectedCategory, category);
-                        realSelectedCategory = category;
-
-                        this.scrollHandler.setTargetValue(0.0F);
-                        this.searchField.setSelectAll(true);
-                        this.searchField.setSelected(true);
-                        this.searchField.keyPressed(GLFW.GLFW_KEY_BACKSPACE, 0, 0);
-                        this.searchField.setSelected(false);
-                    },
-                    () -> {
-                        this.isSidebarExpanded = !this.isSidebarExpanded;
-                        this.sidebarAnimation.animateTo(this.isSidebarExpanded ? 1f : 0f);
-                    }
-            );
-
-            this.headerPanel = new HeaderPanel(
-                    this.searchField,
-                    () -> this.columns = (this.columns % 3) + 1,
-                    () -> Zenith.getInstance().getThemeManager().switchTheme()
-            );
+            headerPanel = new HeaderPanel(() -> Zenith.getInstance().getThemeManager().switchTheme());
         }
+
         initialized = true;
-
-
     }
 
     @Override
     public void tick() {
-
-        if (closing && animationClose.getValue() == 0.0F) {
-            this.close();
+        if (closing && animationClose.getValue() == 0f) {
+            close();
         }
+
         super.tick();
     }
 
@@ -154,7 +143,7 @@ public class MenuScreen extends CustomScreen {
 
     @Override
     public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        //  super.renderBackground(context, mouseX, mouseY, delta);
+        // disable vanilla blur, handled manually
     }
 
     public boolean isFinish() {
@@ -162,115 +151,165 @@ public class MenuScreen extends CustomScreen {
     }
 
     public void renderTop(UIContext ctx, float mouseX, float mouseY) {
-        if (!initialized) return;
+        if (!initialized) {
+            return;
+        }
 
-        animationColums.update(columns == 3 ? 1 : 0);
+        float progress = MathHelper.clamp(animationClose.update(closing ? 0.0F : 1.0F), 0f, 1f);
+        float scale = 0.9f + 0.1f * progress;
 
-        boxWidth = MathHelper.lerp(animationColums.getValue(), 461 + 4, 525 + 8);
-
-        boxHeight = MathHelper.lerp(animationColums.getValue(), 282, 320);
-
-        float progress = animationClose.update(closing ? 0.0F : 1.0F);
-
-        progress = Math.min(Math.max(progress, 0), 1);
-        float sidebarProgress = sidebarAnimation.update();
-        float scale = 0.85f + 0.15f * progress;
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
-        MatrixStack ms = ctx.getMatrices();
+        MatrixStack matrices = ctx.getMatrices();
 
         ctx.pushMatrix();
 
-        float scaleX = boxX + boxWidth / 2f;
-        float scaleY = boxY + boxHeight / 2f;
+        float scaleCenterX = boxX + boxWidth / 2f;
+        float scaleCenterY = boxY + boxHeight / 2f;
 
-        ms.translate(scaleX, scaleY, 1);
-        ms.scale(scale, scale, 1);
-        ms.translate(-scaleX, -scaleY, 1);
+        matrices.translate(scaleCenterX, scaleCenterY, 0);
+        matrices.scale(scale, scale, 1f);
+        matrices.translate(-scaleCenterX, -scaleCenterY, 0);
 
-        ColorRGBA primary = theme.getColor().mulAlpha(progress);
-        ColorRGBA baseBg = theme.getBackgroundColor().mulAlpha(progress * 4); // Фон всей гуишки
-        ColorRGBA selectedColor = theme.getWhite().mulAlpha(progress); // Цвет выбранного элемента и текста
-        ColorRGBA textColor = theme.getWhite().mulAlpha(progress); // Цвет обычного текста
+        ColorRGBA surfaceColor = theme.getForegroundDark().mix(theme.getBackgroundColor(), 0.35f).mulAlpha(progress);
+        ColorRGBA outlineColor = theme.getForegroundStroke().mulAlpha(progress * 0.6f);
+        ColorRGBA accent = theme.getColor().mulAlpha(progress);
+        ColorRGBA textPrimary = theme.getWhite().mulAlpha(progress);
+        ColorRGBA textSecondary = theme.getGrayLight().mulAlpha(progress * 0.8f);
 
-        // ФОН
-        if (Interface.INSTANCE.isBlur() ) {
-            DrawUtil.drawBlur(ctx.getMatrices(), boxX, boxY, boxWidth, boxHeight, 20 * progress * progress, BorderRadius.all(9), ColorRGBA.WHITE.mulAlpha(progress*2));
+        if (Interface.INSTANCE.isBlur()) {
+            DrawUtil.drawBlur(ctx.getMatrices(), boxX, boxY, boxWidth, boxHeight, 24f * progress * progress,
+                    BorderRadius.all(20f), ColorRGBA.WHITE.mulAlpha(progress * 1.6f));
         }
-        ctx.drawRoundedRect(boxX, boxY, boxWidth, boxHeight, BorderRadius.all(9), baseBg);
-        float widthScroll = 2;
-        // СЛАЙДБАР
-        sidebarPanel.render(ctx, boxX, boxY, boxHeight, progress, theme, realSelectedCategory, primary, textColor, selectedColor);
 
-        //НАХОЖДЕНИЕ
-        float sidebarWidth = 30f + (88f - 30f) * sidebarProgress;
-        float contentStartX = boxX + 8f + sidebarWidth + 8f;
-        float sidebarY = boxY + 8f;
-        float contentY = boxY + 22f + 8f + 8f;
+        ctx.drawRoundedRect(boxX, boxY, boxWidth, boxHeight, BorderRadius.all(20f), surfaceColor);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), boxX, boxY, boxWidth, boxHeight, -0.1f,
+                BorderRadius.all(20f), outlineColor);
 
-        headerPanel.render(ctx, contentStartX, sidebarY, boxX, columns, boxWidth, progress, theme, realSelectedCategory);
-        //рендер скролла
-        float visibleHeight = boxHeight - (22f + 8f + 8f + 8f);
-        float scrollProgress = scrollHandler.getMax() == 0 ? 0f : (float) (scrollHandler.getValue() / scrollHandler.getMax());
-        float scrollHeight = Math.max(visibleHeight * (visibleHeight / (float) (visibleHeight + scrollHandler.getMax())), 20);
-        scrollHeight = Math.min(visibleHeight, animationScrollHeight.update(scrollHeight));
-        float denom = Math.max(1f, (visibleHeight - scrollHeight));
-        float scrollY = contentY +denom * scrollProgress;
-        scrollY = Math.min(contentY + visibleHeight, scrollY);
-        ctx.drawRoundedRect(boxX + boxWidth - 8 - widthScroll, contentY, widthScroll, visibleHeight, BorderRadius.all(0.5f), theme.getForegroundColor().mulAlpha(progress));
-        if(scrollY+scrollHeight>visibleHeight+contentY) {
-            ctx.drawRoundedRect(boxX + boxWidth - 8 - widthScroll, contentY, widthScroll, (visibleHeight), BorderRadius.all(1f), theme.getForegroundStroke().mulAlpha(progress));
+        float headerY = boxY;
+        ctx.drawRoundedRect(boxX, headerY, boxWidth, headerHeight,
+                BorderRadius.top(20f, 20f), theme.getForegroundColor().mulAlpha(progress * 0.8f));
 
-        }else ctx.drawRoundedRect(boxX + boxWidth - 8 - widthScroll, scrollY, widthScroll, (scrollHeight), BorderRadius.all(1f), theme.getForegroundStroke().mulAlpha(progress));
+        headerPanel.render(ctx, boxX, headerY, boxWidth, headerHeight, progress, theme, selectedCategory, textPrimary, textSecondary);
 
+        float navX = boxX + outerPadding;
+        float navWidth = boxWidth - outerPadding * 2f;
+        float navY = headerY + headerHeight - 16f;
 
-        //Рендер модулей
-        float contentWidth = boxX + (columns == 3 ? 530 : 461) - contentStartX - 8f;
+        float navAreaHeight = sidebarPanel.render(ctx, navX, navY, navWidth, navHeight, progress, theme, selectedCategory, accent,
+                textPrimary, textSecondary.mulAlpha(0.7f));
 
+        float containerX = navX;
+        float containerY = navY + navAreaHeight + navSpacing;
+        float containerWidth = navWidth;
+        float containerHeight = boxHeight - (containerY - boxY) - outerPadding;
 
-        this.scaledScissorX = (int) contentStartX;
-        this.scaledScissorY = (int) ((int) boxY + (22f + 8f + 8f));
-        this.scaledScissorEndX = (int) (boxX + boxWidth);
-        this.scaledScissorEndY = (int) ((int) boxY + boxHeight);
+        ColorRGBA containerColor = theme.getForegroundColor().mulAlpha(progress * 0.45f);
+        ctx.drawRoundedRect(containerX, containerY, containerWidth, containerHeight, BorderRadius.all(18f), containerColor);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), containerX, containerY, containerWidth, containerHeight, -0.1f,
+                BorderRadius.all(18f), outlineColor.mulAlpha(0.75f));
 
-        //-ScissorUtility.startScissor(scaledScissorX, scaledScissorY, scaledScissorWidth, scaledScissorHeight);
+        contentStartX = containerX + innerPadding;
+        contentWidth = containerWidth - innerPadding * 2f;
+        contentY = containerY + innerPadding;
+        visibleContentHeight = containerHeight - innerPadding * 2f;
+        visibleContentHeight = Math.max(120f, visibleContentHeight);
 
-        ctx.enableScissor(this.scaledScissorX, this.scaledScissorY, this.scaledScissorEndX, this.scaledScissorEndY);
-        animationChangeCategory.setEasing(Easing.QUAD_IN_OUT);
+        scaledScissorX = (int) contentStartX;
+        scaledScissorY = (int) contentY;
+        scaledScissorEndX = (int) (contentStartX + contentWidth);
+        scaledScissorEndY = (int) (contentY + visibleContentHeight);
 
-        renderModules(ctx, mouseX, mouseY, progress * animationChangeCategory.update(selectedCategory == realSelectedCategory ? 1 : 0), (int) contentStartX, contentWidth, (int) contentY);
+        ctx.enableScissor(scaledScissorX, scaledScissorY, scaledScissorEndX, scaledScissorEndY);
+        renderModules(ctx, mouseX, mouseY, progress);
         ctx.disableScissor();
-        List<MenuPopupSetting> removes = new ArrayList<>();
-        for (MenuPopupSetting setting : popupSettings) {
 
+        float scrollbarWidth = 4f;
+        float trackX = contentStartX + contentWidth - scrollbarWidth;
+        float trackY = contentY;
+
+        float visibleHeight = visibleContentHeight;
+        float maxScroll = scrollHandler.getMax();
+        float scrollProgress = maxScroll == 0 ? 0f : (float) (scrollHandler.getValue() / maxScroll);
+        float scrollHeight = Math.max(visibleHeight * (visibleHeight / (float) (visibleHeight + maxScroll)), 28f);
+        scrollHeight = Math.min(visibleHeight, animationScrollHeight.update(scrollHeight));
+
+        float denom = Math.max(1f, visibleHeight - scrollHeight);
+        float scrollY = trackY + denom * scrollProgress;
+        scrollY = MathHelper.clamp(scrollY, trackY, trackY + visibleHeight - scrollHeight);
+
+        ctx.drawRoundedRect(trackX, trackY, scrollbarWidth, visibleHeight,
+                BorderRadius.all(scrollbarWidth / 2f), theme.getForegroundDark().mulAlpha(progress * 0.5f));
+        ctx.drawRoundedRect(trackX, scrollY, scrollbarWidth, scrollHeight,
+                BorderRadius.all(scrollbarWidth / 2f), accent);
+
+        scrollThumbHeight = scrollHeight;
+        scrollThumbY = scrollY;
+
+        List<MenuPopupSetting> remove = new ArrayList<>();
+        for (MenuPopupSetting setting : popupSettings) {
             setting.render(ctx, mouseX, mouseY, progress, theme);
-            if (setting.getAnimationScale().getValue() == 0) {
-                removes.add(setting);
+            if (setting.getAnimationScale().getValue() == 0f) {
+                remove.add(setting);
             }
         }
-        popupSettings.removeAll(removes);
 
-
-        if (animationChangeCategory.getValue() == 0) {
-            selectedCategory = realSelectedCategory;
-        }
-        //ScissorUtility.stopScissor();
+        popupSettings.removeAll(remove);
 
         if (draggingScrollbar) {
-            float scrollbarY = boxY + 22f + 8f + 8f;
-            float newY = (float) mouseY - scrollbarY - scrollClickOffset;
-
-            float scrollRatio = newY / denom;
-            scrollHandler.setTargetValue(-(scrollRatio * scrollHandler.getMax()));
-
+            float newY = (float) mouseY - trackY - scrollClickOffset;
+            float ratio = MathHelper.clamp(newY / denom, 0f, 1f);
+            scrollHandler.setTargetValue(-(ratio * scrollHandler.getMax()));
         }
+
         ctx.popMatrix();
+    }
 
+    private void renderModules(UIContext ctx, float mouseX, float mouseY, float alpha) {
+        List<AbstractMenuElement> visibleModules = modules.stream()
+                .filter(module -> module.getCategory() == selectedCategory)
+                .sorted(Comparator.comparing(AbstractMenuElement::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
 
+        int columns = 2;
+        float scrollbarWidth = 6f;
+        float padding = columnSpacing;
+        float availableWidth = contentWidth - scrollbarWidth;
+        float moduleWidth = (availableWidth - padding * (columns - 1)) / columns;
+
+        double[] columnHeights = new double[columns];
+        Font titleFont = Fonts.MEDIUM.getFont(7);
+
+        for (AbstractMenuElement element : visibleModules) {
+            int columnIndex = 0;
+            for (int i = 1; i < columns; i++) {
+                if (columnHeights[i] < columnHeights[columnIndex]) {
+                    columnIndex = i;
+                }
+            }
+
+            float x = contentStartX + columnIndex * (moduleWidth + padding);
+            float y = (float) (contentY + columnHeights[columnIndex] - scrollHandler.getValue());
+
+            element.render(ctx, mouseX, mouseY, titleFont, x, y, moduleWidth, alpha, columnIndex);
+            columnHeights[columnIndex] += element.getHeight() + padding;
+        }
+
+        scrollHandler.update();
+
+        double maxHeight = 0;
+        for (double columnHeight : columnHeights) {
+            if (columnHeight > maxHeight) {
+                maxHeight = columnHeight;
+            }
+        }
+
+        float visibleHeight = visibleContentHeight;
+        float overflow = (float) Math.max(0, maxHeight - visibleHeight);
+        scrollHandler.setMax(overflow);
     }
 
     @Override
     public void onMouseClicked(double mouseX, double mouseY, MouseButton button) {
-
         if (!popupSettings.isEmpty()) {
             for (MenuPopupSetting setting : popupSettings) {
                 if (setting.getBounds().contains(mouseX, mouseY)) {
@@ -278,16 +317,15 @@ public class MenuScreen extends CustomScreen {
                     return;
                 } else {
                     setting.getAnimationScale().update(0);
-
                 }
             }
         }
-        if (isClosing()) return;
+
+        if (isClosing()) {
+            return;
+        }
+
         if (headerPanel.handleMouseClicked(mouseX, mouseY)) {
-            if (headerPanel.searchBarBounds.contains(mouseX, mouseY)) {
-                searchField.setSelected(true);
-                ;
-            }
             return;
         }
 
@@ -295,49 +333,35 @@ public class MenuScreen extends CustomScreen {
             return;
         }
 
-        if (searchField.isSelected()) {
-            searchField.setSelected(false);
+        if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT &&
+                MathUtil.isHovered(mouseX, mouseY, boxX, boxY, boxWidth, headerHeight)) {
+            draggingWindow = true;
+            dragOffsetX = (float) mouseX - boxX;
+            dragOffsetY = (float) mouseY - boxY;
+            return;
         }
-        if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            if (MathUtil.isHovered(mouseX, mouseY, boxX, boxY, boxWidth, 20)) {
-                dragging = true;
-                dragOffsetX = (float) mouseX - boxX;
-                dragOffsetY = (float) mouseY - boxY;
-                return;
-            }
-        }
-        //чтобы все что обрезанно не нажималось
-        if (!animationClose.isDone()) return;
-        float scrollbarX = boxX + boxWidth - 8 - 2;
-        float scrollbarY = boxY + 22f + 8f + 8f;
-        float visibleHeight = boxHeight - (22f + 8f + 8f);
-        if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            if (MathUtil.isHovered(mouseX, mouseY, scrollbarX, scrollbarY, 2, visibleHeight)) {
-                draggingScrollbar = true;
 
+        float scrollbarX = contentStartX + contentWidth - 4f;
+        float scrollbarY = contentY;
+        float visibleHeight = visibleContentHeight;
+
+        if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT && visibleHeight > 0) {
+            if (MathUtil.isHovered(mouseX, mouseY, scrollbarX, scrollbarY, 4f, visibleHeight)) {
+                draggingScrollbar = true;
+                scrollClickOffset = MathHelper.clamp((float) mouseY - scrollThumbY, 0f, scrollThumbHeight);
                 return;
             }
         }
+
         if (!MathUtil.isHoveredByCords(mouseX, mouseY, scaledScissorX, scaledScissorY, scaledScissorEndX, scaledScissorEndY)) {
             return;
         }
 
-        this.modules.stream()
-                .filter(m -> searchField.isEmpty() ? m.getCategory() == selectedCategory : m.getName().toLowerCase().contains(searchField.getText().toLowerCase())).forEach(menuModule -> menuModule.onMouseClicked(mouseX, mouseY, button));
-
+        modules.stream()
+                .filter(module -> module.getCategory() == selectedCategory)
+                .forEach(module -> module.onMouseClicked(mouseX, mouseY, button));
 
         super.onMouseClicked(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean charTyped(char chr, int modifiers) {
-        if (searchField.isSelected()) {
-            return searchField.charTyped(chr, modifiers);
-        }
-        for (MenuPopupSetting setting : popupSettings) {
-            setting.charTyped(chr, modifiers);
-        }
-        return super.charTyped(chr, modifiers);
     }
 
     @Override
@@ -346,61 +370,25 @@ public class MenuScreen extends CustomScreen {
             setting.onMouseReleased(mouseX, mouseY, button);
         }
 
-
         if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            dragging = false;
+            draggingWindow = false;
             draggingScrollbar = false;
         }
-        for (AbstractMenuElement module : modules) {
-            module.onMouseReleased(mouseX, mouseY, button);
-        }
+
+        modules.forEach(module -> module.onMouseReleased(mouseX, mouseY, button));
         super.onMouseReleased(mouseX, mouseY, button);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        boolean returnCheck = false;
-        ;
-        for (MenuPopupSetting setting : popupSettings) {
-            if (setting.keyPressed(keyCode, scanCode, modifiers)) {
-                searchField.setSelected(false);
-                returnCheck = true;
-            }
-            ;
-        }
-        if (returnCheck) {
-            return true;
-        }
-        //чтобы при отмене бинда или закрытия СЕРЧА ГУи -не закрывалась
-        if (searchField.isSelected()) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-                searchField.setSelected(false);
-                return true;
-            }
-            return searchField.keyPressed(keyCode, scanCode, modifiers);
-        }
-        boolean result = false;
-        for (AbstractMenuElement module : modules) {
-            if (module.keyPressed(keyCode, scanCode, modifiers)) {
-                result = true;
-            }
-        }
-        if (result) {
-            return true;
-        }
-        // pfrhsnbt vty.irb
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE && !closing) {
-            onMouseReleased(0, 0, MouseButton.LEFT);
-            onMouseReleased(0, 0, MouseButton.RIGHT);
-            onMouseReleased(0, 0, MouseButton.MIDDLE);
-            for (MenuPopupSetting setting : popupSettings) {
-                setting.getAnimationScale().setTargetValue(0);
-            }
-            closing = true;
+    public void onMouseDragged(double mouseX, double mouseY, MouseButton button, double deltaX, double deltaY) {
+        if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT && draggingWindow) {
+            boxX = (float) mouseX - dragOffsetX;
+            boxY = (float) mouseY - dragOffsetY;
+            return;
         }
 
-
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        modules.forEach(module -> module.onMouseDragged(mouseX, mouseY, button, deltaX, deltaY));
+        super.onMouseDragged(mouseX, mouseY, button, deltaX, deltaY);
     }
 
     @Override
@@ -411,87 +399,53 @@ public class MenuScreen extends CustomScreen {
             }
             return true;
         }
-        float visibleHeight = boxHeight - (22f + 8f + 8f);
 
-        float baseStep = (float) Math.max(20f, Math.min(60f, (scrollHandler.getMax() / visibleHeight) * 10));
-
-
-        scrollHandler.scroll(verticalAmount * baseStep / 8);
+        float visibleHeight = Math.max(visibleContentHeight, 1f);
+        float step = Math.max(24f, Math.min(72f, (scrollHandler.getMax() / visibleHeight) * 12f));
+        scrollHandler.scroll(verticalAmount * step / 8f);
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     @Override
-    public void onMouseDragged(double mouseX, double mouseY, MouseButton button, double deltaX, double deltaY) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        boolean handled = false;
 
-        if (button.getButtonIndex() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-            if (dragging) {
-                boxX = (float) mouseX - dragOffsetX;
-                boxY = (float) mouseY - dragOffsetY;
-                return;
+        for (MenuPopupSetting setting : popupSettings) {
+            if (setting.keyPressed(keyCode, scanCode, modifiers)) {
+                handled = true;
             }
-
-
         }
+
+        if (handled) {
+            return true;
+        }
+
         for (AbstractMenuElement module : modules) {
-            module.onMouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+            if (module.keyPressed(keyCode, scanCode, modifiers)) {
+                handled = true;
+            }
         }
 
-        super.onMouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        if (handled) {
+            return true;
+        }
+
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE && !closing) {
+            onMouseReleased(0, 0, MouseButton.LEFT);
+            onMouseReleased(0, 0, MouseButton.RIGHT);
+            onMouseReleased(0, 0, MouseButton.MIDDLE);
+            for (MenuPopupSetting setting : popupSettings) {
+                setting.getAnimationScale().setTargetValue(0);
+            }
+            closing = true;
+        }
+
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public void close() {
-        ;
         super.close();
-    }
-
-
-    private void renderModules(UIContext ctx, float mouseX, float mouseY, float alpha, float contentStartX, float contentWidth, float startY) {
-
-        List<AbstractMenuElement> modules = this.modules.stream()
-                .filter(m -> searchField.isEmpty() ? m.getCategory() == selectedCategory : m.getName().toLowerCase().contains(searchField.getText().toLowerCase()))
-                .sorted(Comparator.comparing(menuModule -> menuModule.getName(), String.CASE_INSENSITIVE_ORDER))
-                .toList();
-
-
-        int columns = this.columns;
-        float padding = 6f;
-        float scrollbarWidth = 6f;
-        float maxContentWidth = contentWidth - scrollbarWidth;
-        float moduleWidth = (maxContentWidth - padding * (columns - 1)) / columns;
-
-        Font font = Fonts.MEDIUM.getFont(7);
-        double[] columnHeights = new double[columns];
-
-
-        for (AbstractMenuElement module : modules) {
-            int col = 0;
-            for (int j = 1; j < columns; j++) {
-                if (columnHeights[j] < columnHeights[col]) {
-                    col = j;
-                }
-            }
-
-
-            float x = contentStartX + col * (moduleWidth + padding);
-
-            float y = (float) (startY + columnHeights[col] - scrollHandler.getValue());
-
-
-            module.render(ctx, mouseX, mouseY, font, x, y, moduleWidth, alpha, col);
-
-            columnHeights[col] += module.getHeight() + padding;
-
-        }
-
-        scrollHandler.update();
-        double maxY = Arrays.stream(columnHeights).max().orElse(0);
-
-
-        float visibleHeight = boxHeight - (22f + 8f + 8f);
-
-        scrollHandler.setMax(Math.max(0, maxY - visibleHeight) + (maxY > visibleHeight ? 4 : 0));
-
     }
 
     public void addPopupMenuSetting(MenuPopupSetting setting) {
@@ -504,7 +458,6 @@ public class MenuScreen extends CustomScreen {
 
     @Override
     public void render(UIContext context, float mouseX, float mouseY) {
-
+        // handled by parent layout
     }
-
 }

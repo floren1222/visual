@@ -7,14 +7,28 @@ import zenith.zov.base.animations.base.Animation;
 import zenith.zov.base.animations.base.Easing;
 import zenith.zov.base.font.Font;
 import zenith.zov.base.font.Fonts;
+import zenith.zov.base.theme.Theme;
 import zenith.zov.client.modules.api.Category;
 import zenith.zov.client.modules.api.Module;
-import zenith.zov.base.theme.Theme;
+import zenith.zov.client.modules.api.setting.Setting;
+import zenith.zov.client.modules.api.setting.impl.BooleanSetting;
+import zenith.zov.client.modules.api.setting.impl.ButtonSetting;
+import zenith.zov.client.modules.api.setting.impl.ColorSetting;
+import zenith.zov.client.modules.api.setting.impl.ItemSelectSetting;
+import zenith.zov.client.modules.api.setting.impl.KeySetting;
+import zenith.zov.client.modules.api.setting.impl.ModeSetting;
+import zenith.zov.client.modules.api.setting.impl.MultiBooleanSetting;
+import zenith.zov.client.modules.api.setting.impl.NumberSetting;
 import zenith.zov.client.screens.menu.elements.api.AbstractMenuElement;
 import zenith.zov.client.screens.menu.settings.api.MenuSetting;
-import zenith.zov.client.screens.menu.settings.impl.*;
-import zenith.zov.client.modules.api.setting.Setting;
-import zenith.zov.client.modules.api.setting.impl.*;
+import zenith.zov.client.screens.menu.settings.impl.MenuBooleanSetting;
+import zenith.zov.client.screens.menu.settings.impl.MenuButtonSetting;
+import zenith.zov.client.screens.menu.settings.impl.MenuColorSetting;
+import zenith.zov.client.screens.menu.settings.impl.MenuItemSetting;
+import zenith.zov.client.screens.menu.settings.impl.MenuKeySetting;
+import zenith.zov.client.screens.menu.settings.impl.MenuModeSetting;
+import zenith.zov.client.screens.menu.settings.impl.MenuSelectSetting;
+import zenith.zov.client.screens.menu.settings.impl.MenuSliderSetting;
 import zenith.zov.utility.game.other.MouseButton;
 import zenith.zov.utility.render.display.Keyboard;
 import zenith.zov.utility.render.display.base.BorderRadius;
@@ -27,23 +41,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MenuModuleElement extends AbstractMenuElement {
+
+    private static final float HEADER_HEIGHT = 58f;
+    private static final float CORNER_RADIUS = 16f;
+    private static final float SETTINGS_PADDING = 18f;
+    private static final float SETTINGS_SPACING = 12f;
+
     @Getter
     private final Module module;
     private final List<MenuSetting> settings = new ArrayList<>();
-    private final Animation animation;
+    private final Animation toggleAnimation;
     private final Animation animationPosition;
     private final Animation animationY;
-    private Rect bounds;
-    private Rect boundsBind;
+    private Rect headerBounds;
+    private Rect bindBounds;
     @Getter
     private boolean binding = false;
-    private int lastColum = -1;
+    private int lastColumn = -1;
+    private boolean animated;
 
     public MenuModuleElement(Module module) {
         this.module = module;
-        animation = new Animation(200, module.isEnabled() ? 1 : 0, Easing.LINEAR);
-        animationPosition = new Animation(150, 1, Easing.QUAD_IN_OUT);
-        animationY = new Animation(150, 1, Easing.QUAD_IN_OUT);
+        this.toggleAnimation = new Animation(200, module.isEnabled() ? 1f : 0f, Easing.QUAD_IN_OUT);
+        this.animationPosition = new Animation(180, 1f, Easing.QUAD_IN_OUT);
+        this.animationY = new Animation(180, 1f, Easing.QUAD_IN_OUT);
 
         for (Setting setting : module.getSettings()) {
             if (setting instanceof NumberSetting sliderSetting) {
@@ -56,194 +77,188 @@ public class MenuModuleElement extends AbstractMenuElement {
                 settings.add(new MenuBooleanSetting(booleanSetting));
             } else if (setting instanceof ColorSetting colorSetting) {
                 settings.add(new MenuColorSetting(colorSetting));
-            }
-            else if (setting instanceof ButtonSetting buttonSetting) {
+            } else if (setting instanceof ButtonSetting buttonSetting) {
                 settings.add(new MenuButtonSetting(buttonSetting));
-            }
-            else if (setting instanceof ItemSelectSetting itemSelectSetting) {
+            } else if (setting instanceof ItemSelectSetting itemSelectSetting) {
                 settings.add(new MenuItemSetting(itemSelectSetting));
-            }
-            else if (setting instanceof KeySetting keySetting) {
+            } else if (setting instanceof KeySetting keySetting) {
                 settings.add(new MenuKeySetting(keySetting));
             }
         }
     }
 
-    boolean animated = false;
-
     @Override
-    public void render(UIContext ctx, float mouseX, float mouseY, Font font, float x, float y, float moduleWidth, float alpha, int colum) {
-        if (lastColum == -1) lastColum = colum;
-        if (lastColum != colum) {
+    public void render(UIContext ctx, float mouseX, float mouseY, Font font, float x, float y, float moduleWidth, float alpha, int column) {
+        if (lastColumn == -1) {
+            lastColumn = column;
+        }
+
+        if (lastColumn != column) {
             animated = true;
             animationPosition.animateTo(x);
             animationY.animateTo(y);
-            lastColum = colum;
+            lastColumn = column;
         }
+
         if (animated) {
             x = animationPosition.update(x);
             y = animationY.update(y);
-            if (animationPosition.isDone() && animationY.isDone()) animated = false;
+            if (animationPosition.isDone() && animationY.isDone()) {
+                animated = false;
+            }
         } else {
             animationPosition.reset(x);
             animationY.reset(y);
         }
 
-        animation.animateTo(module.isEnabled() ? 1 : 0);
-        animation.update();
-        float moduleHeight = 22;
+        toggleAnimation.animateTo(module.isEnabled() ? 1f : 0f);
+        float toggleProgress = toggleAnimation.update();
+
         Theme theme = Zenith.getInstance().getThemeManager().getCurrentTheme();
-        ColorRGBA moduleBg = theme.getForegroundColor().mulAlpha(alpha);
-
         boolean hasSettings = hasSettings();
-        float settingAreaHeight = getHeight();
-        ColorRGBA settingBg = theme.getForegroundDark().mulAlpha(alpha);
-        bounds = new Rect(x, y, moduleWidth, moduleHeight);
+
+        float totalHeight = getHeight();
+        float headerHeight = HEADER_HEIGHT;
+        float bodyStart = y + headerHeight;
+
+        ColorRGBA headerColor = theme.getForegroundColor().mulAlpha(alpha);
+        ColorRGBA bodyColor = theme.getForegroundDark().mulAlpha(alpha * 0.85f);
+        ColorRGBA borderColor = theme.getForegroundStroke().mulAlpha(alpha * 0.75f);
+        ColorRGBA accentColor = theme.getColor().mulAlpha(alpha);
+        ColorRGBA titleColor = theme.getWhite().mix(theme.getColor(), toggleProgress * 0.35f).mulAlpha(alpha);
+        ColorRGBA mutedColor = theme.getGrayLight().mulAlpha(alpha * 0.85f);
 
         if (hasSettings) {
-            ctx.drawRoundedRect(x, y, moduleWidth, settingAreaHeight, BorderRadius.all(8), settingBg);
-            ctx.drawRoundedRect(x, y, moduleWidth, moduleHeight, BorderRadius.top(8, 8), moduleBg);
+            ctx.drawRoundedRect(x, y, moduleWidth, totalHeight, BorderRadius.all(CORNER_RADIUS), bodyColor);
+            ctx.drawRoundedRect(x, y, moduleWidth, headerHeight, BorderRadius.top(CORNER_RADIUS, CORNER_RADIUS), headerColor);
+        } else {
+            ctx.drawRoundedRect(x, y, moduleWidth, headerHeight, BorderRadius.all(CORNER_RADIUS), headerColor);
+        }
 
-                } else {
-            ctx.drawRoundedRect(x, y, moduleWidth, moduleHeight, BorderRadius.all(8), moduleBg);
-              }
+        headerBounds = new Rect(x, y, moduleWidth, headerHeight);
 
-        ColorRGBA enabledColor = theme.getGray().mix(theme.getColor(), animation.getValue()).mulAlpha(alpha);
-        ColorRGBA textColor = theme.getGrayLight().mix(theme.getWhite(), animation.getValue()).mulAlpha(alpha);
-        ctx.drawText(Fonts.ICONS.getFont(5.5f), "B", x + 8, y + 9, enabledColor);
-        ctx.drawText(font, module.getName(), x + 18, y + 9, textColor);
+        Font titleFont = Fonts.MEDIUM.getFont(7.5f);
+        Font stateFont = Fonts.MEDIUM.getFont(6f);
+        float textX = x + 20f;
+        float textY = y + 16f;
 
-        float keyBoxWidth = 22.5f;
-        float keyBoxX = x + moduleWidth - keyBoxWidth;
-        ColorRGBA badgeColor;
+        ctx.drawText(titleFont, module.getName(), textX, textY, titleColor);
+        String state = module.isEnabled() ? "Enabled" : "Disabled";
+        ctx.drawText(stateFont, state, textX, textY + titleFont.height() + 4f, mutedColor);
 
-        if (isBinding()) {
-            badgeColor = theme.getSecondColor();
+        Font keyFont = Fonts.MEDIUM.getFont(6.5f);
+        String keyLabel = resolveKeyLabel();
+        float keyWidth = Math.max(42f, keyFont.width(keyLabel) + 14f);
+        float keyHeight = 18f;
+        float keyX = textX;
+        float keyY = y + headerHeight - keyHeight - 12f;
+
+        ColorRGBA keyBg;
+        if (binding) {
+            keyBg = theme.getSecondColor().mulAlpha(alpha);
         } else if (module.getKeyCode() != -1) {
-            badgeColor = theme.getWhiteGray().mix(theme.getColor(), animation.getValue()).mulAlpha(alpha);
+            keyBg = theme.getColor().mulAlpha(alpha * 0.6f);
         } else {
-            badgeColor = theme.getForegroundLight().mulAlpha(alpha);
+            keyBg = theme.getForegroundLight().mulAlpha(alpha * 0.8f);
         }
 
+        bindBounds = new Rect(keyX, keyY, keyWidth, keyHeight);
+        ctx.drawRoundedRect(keyX, keyY, keyWidth, keyHeight, BorderRadius.all(keyHeight / 2f), keyBg);
+        ctx.drawText(keyFont, keyLabel,
+                keyX + (keyWidth - keyFont.width(keyLabel)) / 2f,
+                keyY + (keyHeight - keyFont.height()) / 2f,
+                theme.getWhite().mulAlpha(alpha));
 
-        ctx.drawRoundedRect(keyBoxX, y, keyBoxWidth, moduleHeight,
-                hasSettings ? BorderRadius.topRight(8) : new BorderRadius(0, 8, 8, 0), badgeColor);
+        float toggleWidth = 46f;
+        float toggleHeight = 22f;
+        float toggleX = x + moduleWidth - toggleWidth - 20f;
+        float toggleY = y + (headerHeight - toggleHeight) / 2f;
 
-        String keyText = "n/a";
-        int keyCode = module.getKeyCode();
-        if (keyCode != -1 && keyCode != 0) {
-            try {
-                String name = Keyboard.getKeyName(keyCode);
-                if (name != null && !name.isBlank()) {
-                    keyText = name.toUpperCase();
-                }
-            } catch (Exception ignored) {
-            }
-        }
+        ColorRGBA toggleTrackOff = theme.getForegroundLight().mulAlpha(alpha * 0.7f);
+        ColorRGBA toggleTrack = toggleTrackOff.mix(accentColor, toggleProgress);
+        ColorRGBA knobColor = theme.getWhite().mulAlpha(alpha);
 
-        Font keyFont = Fonts.MEDIUM.getFont(7);
+        ctx.drawRoundedRect(toggleX, toggleY, toggleWidth, toggleHeight, BorderRadius.all(toggleHeight / 2f), toggleTrack);
 
-        float keyTextY = y + (moduleHeight - keyFont.height()) / 2f;
+        float knobSize = toggleHeight - 6f;
+        float knobX = toggleX + 3f + (toggleWidth - toggleHeight) * toggleProgress;
+        float knobY = toggleY + 3f;
+        ctx.drawRoundedRect(knobX, knobY, knobSize, knobSize, BorderRadius.all(knobSize / 2f), knobColor);
 
-        float keyPadding = 2f;
-        float keyContentWidth = keyBoxWidth - keyPadding * 2f;
-        float keyContentX = keyBoxX + keyPadding;
-
-        ColorRGBA keyColor = (keyCode != -1
-                ? theme.getGrayLight().mix(theme.getWhite(), animation.getValue())
-                : theme.getGray()
-        ).mulAlpha(alpha);
-        boundsBind = new Rect(keyBoxX, y, keyBoxWidth, moduleHeight);
-        ctx.enableScissor((int) keyBoxX+1, (int) y, (int) (keyBoxX+ keyBoxWidth-2), (int) (y+ moduleHeight));
-        drawScrollingText(ctx, keyFont, keyText, keyContentX, keyTextY, keyContentWidth, keyColor);
-
-        ctx.disableScissor();
-
-        float padding = 8;
-        float startY = y + moduleHeight + padding;
-        ColorRGBA descriptionColor = theme.getWhiteGray().mix(theme.getGrayLight(), animation.getValue()).mulAlpha(alpha);
-        for (MenuSetting setting : settings) {
-            if(!setting.isVisible()) continue;
-            setting.render(ctx, mouseX, mouseY, x, startY, moduleWidth, alpha, animation.getValue(),
-                    enabledColor, textColor, descriptionColor, theme);
-            startY += setting.getHeight() + 8;
-        }
+        float startY = bodyStart;
         if (hasSettings) {
-
-            DrawUtil.drawRoundedBorder(ctx.getMatrices(), x, y, moduleWidth, settingAreaHeight, -0.1f,
-                    BorderRadius.all(8), theme.getForegroundStroke().mulAlpha(alpha));
-        } else {
-            DrawUtil.drawRoundedBorder(ctx.getMatrices(), x, y, moduleWidth, moduleHeight, -0.1f,
-                    BorderRadius.all(8), theme.getForegroundStroke().mulAlpha(alpha));
+            startY += SETTINGS_PADDING;
         }
+
+        ColorRGBA enabledColor = theme.getGray().mix(theme.getColor(), toggleProgress).mulAlpha(alpha);
+        ColorRGBA textColor = theme.getWhiteGray().mix(theme.getWhite(), toggleProgress).mulAlpha(alpha);
+        ColorRGBA descriptionColor = theme.getGrayLight().mulAlpha(alpha * 0.9f);
+
+        for (MenuSetting setting : settings) {
+            if (!setting.isVisible()) {
+                continue;
+            }
+            setting.render(ctx, mouseX, mouseY, x + 16f, startY, moduleWidth - 32f, alpha, toggleProgress,
+                    enabledColor, textColor, descriptionColor, theme);
+            startY += setting.getHeight() + SETTINGS_SPACING;
+        }
+
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), x, y, moduleWidth, totalHeight, -0.1f,
+                BorderRadius.all(CORNER_RADIUS), borderColor);
     }
-    //this sheet code 2023
-    private void drawScrollingText(UIContext ctx, Font font, String text,
-                                   float x, float y, float maxWidth, ColorRGBA color) {
-        float textW = font.width(text);
 
-        
-        if (textW <= maxWidth) {
-            float centeredX = x + (maxWidth - textW) / 2f;
-            ctx.drawText(font, text, centeredX, y, color);
-            return;
+    private String resolveKeyLabel() {
+        int keyCode = module.getKeyCode();
+        if (binding) {
+            return "...";
         }
-
-        
-        float scrollMax = textW - maxWidth;
-
-        
-        float pauseMs = 700f;        
-        float slideMs = 1400f;       
-        float total = pauseMs + slideMs + pauseMs + slideMs;
-
-        long now = System.currentTimeMillis();
-        float t = now % (long) total;
-
-        float offset; 
-        if (t < pauseMs) {
-            
-            offset = 0f;
-        } else if (t < pauseMs + slideMs) {
-            
-            float k = (t - pauseMs) / slideMs;          
-            
-            k = k * k * (3f - 2f * k);
-            offset = k * scrollMax;
-        } else if (t < pauseMs + slideMs + pauseMs) {
-            
-            offset = scrollMax;
-        } else {
-            
-            float k = (t - pauseMs - slideMs - pauseMs) / slideMs; 
-            k = k * k * (3f - 2f * k);
-            offset = scrollMax * (1f - k);
+        if (keyCode == -1 || keyCode == 0) {
+            return "Unbound";
         }
-
-        
-        ctx.drawText(font, text, x - offset, y, color);
+        try {
+            String name = Keyboard.getKeyName(keyCode);
+            if (name != null && !name.isBlank()) {
+                return name.toUpperCase();
+            }
+        } catch (Exception ignored) {
+        }
+        return "Unknown";
     }
+
     @Override
     public float getHeight() {
-        return (float) (22 + (hasSettings() ? settings.stream().filter(MenuSetting::isVisible).mapToDouble(m -> m.getHeight()+8).sum()
-                + 8  : 0));
+        float total = HEADER_HEIGHT;
+        float settingsHeight = 0f;
+        for (MenuSetting setting : settings) {
+            if (!setting.isVisible()) {
+                continue;
+            }
+            settingsHeight += setting.getHeight();
+            settingsHeight += SETTINGS_SPACING;
+        }
+        if (settingsHeight > 0f) {
+            settingsHeight -= SETTINGS_SPACING;
+            total += SETTINGS_PADDING + settingsHeight;
+        }
+        return total;
     }
 
     public boolean hasSettings() {
-        return !settings.isEmpty() && settings.stream().anyMatch(MenuSetting::isVisible);
+        return settings.stream().anyMatch(MenuSetting::isVisible);
     }
 
     @Override
     public void onMouseClicked(double mouseX, double mouseY, MouseButton button) {
-        if (bounds != null && bounds.contains(mouseX, mouseY)) {
-            if(button .getButtonIndex()>2 &&binding){
+        if (headerBounds != null && headerBounds.contains(mouseX, mouseY)) {
+            if (button.getButtonIndex() > 2 && binding) {
                 binding = false;
                 this.module.setKeyCode(button.getButtonIndex());
             }
-            if (button == MouseButton.LEFT ) {
-                if(boundsBind!=null && boundsBind.contains(mouseX, mouseY)){
+
+            if (button == MouseButton.LEFT) {
+                if (bindBounds != null && bindBounds.contains(mouseX, mouseY)) {
                     binding = !binding;
-                }else {
+                } else {
                     module.toggle();
                 }
             } else if (button == MouseButton.MIDDLE) {
@@ -267,13 +282,14 @@ public class MenuModuleElement extends AbstractMenuElement {
             binding = false;
             return true;
         }
-        boolean result = false;
+
+        boolean handled = false;
         for (MenuSetting setting : settings) {
-            if(setting.keyPressed(keyCode, scanCode, modifiers)) {
-               result = true;
+            if (setting.keyPressed(keyCode, scanCode, modifiers)) {
+                handled = true;
             }
         }
-        return result;
+        return handled;
     }
 
     @Override
@@ -300,6 +316,5 @@ public class MenuModuleElement extends AbstractMenuElement {
 
     @Override
     public void onMouseDragged(double mouseX, double mouseY, MouseButton button, double deltaX, double deltaY) {
-
     }
 }

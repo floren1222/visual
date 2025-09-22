@@ -20,24 +20,40 @@ public class SideBarCategory {
         animationSwitch = new Animation(200, category == Category.COMBAT ? 1 : 0, Easing.LINEAR);
     }
 
-    public void render(UIContext ctx, float x, float y, float width, float height, float sidebarProgress, boolean selected, ColorRGBA textColor,ColorRGBA textColorDisable, ColorRGBA iconColorDisable, ColorRGBA primary) {
+    public void render(UIContext ctx,
+                       float x,
+                       float y,
+                       float width,
+                       float height,
+                       float sidebarProgress,
+                       boolean selected,
+                       ColorRGBA textColor,
+                       ColorRGBA textColorDisable,
+                       ColorRGBA iconColorDisable,
+                       ColorRGBA primary) {
         animationSwitch.animateTo(selected ? 1 : 0);
         animationSwitch.update();
-        ColorRGBA mixColor = iconColorDisable.mix(primary, animationSwitch.getValue());
-        ColorRGBA mixColorText = textColorDisable.mix(textColor, animationSwitch.getValue());
-        Font font = Fonts.ICONS.getFont(7);
 
-        float offestY = (height - font.height()) / 2;
-        float scale = MathHelper.lerp(sidebarProgress,1f,0.8f);
-        float iconWidth = font.width(category.getIcon());
+        Font iconFont = Fonts.ICONS.getFont(7);
+        Font labelFont = Fonts.MEDIUM.getFont(6.5f);
+
+        float iconX = x + 12f;
+        float iconY = y + (height - iconFont.height()) / 2f;
+        float iconScale = MathHelper.lerp(sidebarProgress, 0.85f, 1f);
+
+        ColorRGBA iconColor = iconColorDisable.mix(primary, animationSwitch.getValue());
+
         ctx.pushMatrix();
-        ctx.getMatrices().translate(x + 8 + iconWidth/2 +(category==Category.PLAYER?1:0), y + offestY+font.height()/2,0);
-        ctx.getMatrices().scale(scale,scale,1);
-        ctx.getMatrices().translate(-(x + 8 + iconWidth/2), -(y + offestY+font.height()/2),0);
-        ctx.drawText(Fonts.ICONS.getFont(7), category.getIcon(), x + 8, y + offestY, mixColor);
+        ctx.getMatrices().translate(iconX + iconFont.width(category.getIcon()) / 2f, iconY + iconFont.height() / 2f, 0);
+        ctx.getMatrices().scale(iconScale, iconScale, 1);
+        ctx.getMatrices().translate(-(iconX + iconFont.width(category.getIcon()) / 2f), -(iconY + iconFont.height() / 2f), 0);
+        ctx.drawText(iconFont, category.getIcon(), iconX, iconY, iconColor.mulAlpha(MathHelper.clamp(sidebarProgress, 0.35f, 1f)));
         ctx.popMatrix();
-        Font categoryFont = Fonts.MEDIUM.getFont(7);
-        ctx.drawText(categoryFont,category.getName(),x + 8+iconWidth*scale+6,y+(height-font.height())/2,mixColorText);
+
+        float textX = iconX + iconFont.width(category.getIcon()) * iconScale + 8f;
+        float textY = y + (height - labelFont.height()) / 2f;
+        ColorRGBA blended = textColorDisable.mix(textColor, animationSwitch.getValue());
+        ctx.drawText(labelFont, category.getName(), textX, textY, blended.mulAlpha(MathHelper.clamp(sidebarProgress, 0f, 1f)));
     }
 
 }

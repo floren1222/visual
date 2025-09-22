@@ -1,6 +1,6 @@
 package zenith.zov.client.screens.menu.panels;
 
-import net.minecraft.util.math.MathHelper;
+import by.saskkeee.user.UserInfo;
 import zenith.zov.Zenith;
 import zenith.zov.base.animations.base.Animation;
 import zenith.zov.base.animations.base.Easing;
@@ -8,14 +8,15 @@ import zenith.zov.base.font.Font;
 import zenith.zov.base.font.Fonts;
 import zenith.zov.base.theme.Theme;
 import zenith.zov.client.modules.api.Category;
+import zenith.zov.client.modules.api.Module;
 import zenith.zov.utility.render.display.TextBox;
 import zenith.zov.utility.render.display.base.BorderRadius;
-import zenith.zov.utility.render.display.base.CustomSprite;
 import zenith.zov.utility.render.display.base.Rect;
 import zenith.zov.utility.render.display.base.UIContext;
 import zenith.zov.utility.render.display.base.color.ColorRGBA;
 import zenith.zov.utility.render.display.shader.DrawUtil;
-import zenith.zov.client.modules.api.Module;
+
+import java.util.Locale;
 
 public class HeaderPanel {
 
@@ -28,181 +29,214 @@ public class HeaderPanel {
     private final Runnable onThemeSwitch;
     private Category lastCategory = Category.COMBAT;
 
+    private final Animation animation = new Animation(300, 1, Easing.QUAD_IN_OUT);
+
     public HeaderPanel(TextBox searchField, Runnable onLayoutToggle, Runnable onThemeSwitch) {
         this.searchField = searchField;
         this.onLayoutToggle = onLayoutToggle;
         this.onThemeSwitch = onThemeSwitch;
     }
 
-    Animation animation = new Animation(300, 1, Easing.QUAD_IN_OUT);
-
-    public void render(UIContext ctx, float contentStartX, float sidebarY,
-                       float boxX, int columns,float boxWidth, float progress,
-                       Theme theme, Category selectedCategory) {
-
+    public void render(UIContext ctx,
+                       float boxX,
+                       float boxY,
+                       float boxWidth,
+                       float heroHeight,
+                       float progress,
+                       Theme theme,
+                       Category selectedCategory,
+                       int columns) {
 
         animation.update(1);
 
-
-        ColorRGBA sideBar = theme.getForegroundColor().mulAlpha(progress);
+        ColorRGBA accent = theme.getColor().mulAlpha(progress);
         ColorRGBA textColor = theme.getWhite().mulAlpha(progress);
+        ColorRGBA subtleText = textColor.mulAlpha(0.65f);
 
+        float padding = 28f;
+        float titleX = boxX + padding;
+        float titleY = boxY + padding;
 
-        float x = contentStartX;
-        x = renderBreadcrumbs(ctx, x, sidebarY, progress, theme, selectedCategory, textColor);
-        x += 8f; // panelGap
-        x = renderStats(ctx, x, sidebarY, progress, theme, selectedCategory, textColor);
-        x += 8f;
-        x = renderThemeButton(ctx, x, sidebarY, progress, theme);
-        x += 8f;
-        renderLayoutButton(ctx, x, sidebarY, progress, theme, columns);
-        renderSearchBar(ctx, boxX, sidebarY, boxWidth, progress, theme);
-    }
+        Font iconFont = Fonts.ICONS.getFont(9);
+        Font titleFont = Fonts.MEDIUM.getFont(10);
+        float iconY = titleY + (titleFont.height() - iconFont.height()) / 2f;
+        ctx.drawText(iconFont, selectedCategory.getIcon(), titleX, iconY, accent);
 
-    private float renderBreadcrumbs(UIContext ctx, float startX, float y,
-                                    float progress, Theme theme,
-                                    Category selectedCategory,
-                                    ColorRGBA textColor) {
-        String name = selectedCategory.getName();
-        Font font = Fonts.MEDIUM.getFont(7);
-        Font icon7 = Fonts.ICONS.getFont(7);
-        Font icon6 = Fonts.ICONS.getFont(5);
-
-        float homeIcon = 7, arrowIcon = 6, catIcon = 7;
-        float pad = 8, gap = 4, tgap = 2;
-        float textW = MathHelper.lerp(animation.getValue(), font.width(lastCategory.getName()), font.width(name));
-        float width = pad * 2 + homeIcon + gap + arrowIcon  + catIcon + tgap + textW;
-        float h = 22;
-
-        ColorRGBA bar = theme.getForegroundColor().mulAlpha(progress);
-        ctx.drawRoundedRect(startX, y, width, h, BorderRadius.all(7), bar);
-        DrawUtil.drawRoundedBorder(ctx.getMatrices(), startX, y, width, h, -0.1f,
-                BorderRadius.all(7), theme.getForegroundStroke().mulAlpha(progress));
-
-
-        float cx = startX + pad;
-        float vy = y + h / 2f;
-        ctx.drawText(icon7, "7", cx, vy - icon7.height() / 2 - .5f, theme.getColor().mulAlpha(progress));
-        cx += icon7.width("7") + gap;
-        ctx.drawText(icon6, "A", cx + 1, vy - icon6.height() / 2 - .3f, theme.getForegroundGray().mulAlpha(progress));
-        cx += icon6.width("A") + gap;
-        ctx.enableScissor((int) startX+20, (int) y, (int) (startX + width), (int) (y + h));
-
-        float offset = (1-animation.getValue())*font.width(name)*2;
-        float offset2 = (animation.getValue())*font.width(lastCategory.getName());
-
-        ctx.drawText(font, name, cx+offset, vy - font.height() / 2f, textColor.mulAlpha(animation.getValue()));
-        ctx.drawText(font, lastCategory.getName(), cx-offset2, vy - font.height() / 2f, textColor.mulAlpha(1-animation.getValue()));
+        float labelX = titleX + iconFont.width(selectedCategory.getIcon()) + 10f;
+        ctx.enableScissor((int) labelX, (int) (titleY - 2), (int) (labelX + 240), (int) (titleY + titleFont.height() + 20));
+        float blend = animation.getValue();
+        ctx.drawText(titleFont, selectedCategory.getName(), labelX, titleY, textColor.mulAlpha(blend));
+        ctx.drawText(titleFont, lastCategory.getName(), labelX, titleY, textColor.mulAlpha(1 - blend));
         ctx.disableScissor();
-        return startX + width;
+
+        Font subtitleFont = Fonts.MEDIUM.getFont(6.5f);
+        String currentSubtitle = formatSubtitle(selectedCategory);
+        String previousSubtitle = formatSubtitle(lastCategory);
+        float subtitleY = titleY + titleFont.height() + 6f;
+
+        ctx.enableScissor((int) labelX, (int) (subtitleY - 2), (int) (labelX + 260), (int) (subtitleY + subtitleFont.height() + 6));
+        ctx.drawText(subtitleFont, currentSubtitle, labelX, subtitleY, subtleText.mulAlpha(blend));
+        ctx.drawText(subtitleFont, previousSubtitle, labelX, subtitleY, subtleText.mulAlpha(1 - blend));
+        ctx.disableScissor();
+
+        float statsY = subtitleY + subtitleFont.height() + 12f;
+        renderStats(ctx, titleX, statsY, progress, theme, selectedCategory, textColor);
+
+        renderProfileCard(ctx, boxX, boxY, boxWidth, heroHeight, progress, theme, textColor, subtleText);
+
+        float controlsPadding = 24f;
+        float controlsY = boxY + controlsPadding;
+        float buttonSize = 26f;
+        float gap = 10f;
+
+        float searchWidth = 172f;
+        float searchHeight = 28f;
+        float searchX = boxX + boxWidth - controlsPadding - searchWidth;
+        float layoutX = searchX - gap - buttonSize;
+        float themeX = layoutX - gap - buttonSize;
+
+        renderThemeButton(ctx, themeX, controlsY, buttonSize, progress, theme);
+        renderLayoutButton(ctx, layoutX, controlsY, buttonSize, progress, theme, columns);
+        renderSearchBar(ctx, searchX, controlsY, searchWidth, searchHeight, progress, theme);
     }
 
-    private float renderStats(UIContext ctx, float startX, float y,
-                              float progress, Theme theme,
-                              Category cat, ColorRGBA textColor) {
-        int enabled = 0, total = 0;
-        for (Module m : Zenith.getInstance().getModuleManager().getModules()) {
-            if (m.getCategory() == cat) {
+    private void renderStats(UIContext ctx,
+                              float x,
+                              float y,
+                              float progress,
+                              Theme theme,
+                              Category cat,
+                              ColorRGBA textColor) {
+        int enabled = 0;
+        int total = 0;
+        for (Module module : Zenith.getInstance().getModuleManager().getModules()) {
+            if (module.getCategory() == cat) {
                 total++;
-                if (m.isEnabled()) enabled++;
+                if (module.isEnabled()) {
+                    enabled++;
+                }
             }
         }
-        Font font = Fonts.MEDIUM.getFont(7);
+
+        float width = 220f;
+        float height = 32f;
+        float padding = 16f;
+        float dividerX = x + width / 2f;
+
+        ColorRGBA panel = theme.getForegroundColor().mulAlpha(progress * 0.6f);
+        ctx.drawRoundedRect(x, y, width, height, BorderRadius.all(12f), panel);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), x, y, width, height, -0.1f, BorderRadius.all(12f), theme.getForegroundStroke().mulAlpha(progress * 0.5f));
+
+        Font valueFont = Fonts.MEDIUM.getFont(7.5f);
+        Font labelFont = Fonts.MEDIUM.getFont(6);
+        float columnY = y + (height - valueFont.height() - labelFont.height() - 4f) / 2f;
+
+        ctx.drawText(valueFont, String.valueOf(enabled), x + padding, columnY, textColor);
+        ctx.drawText(labelFont, "active", x + padding, columnY + valueFont.height() + 4f, textColor.mulAlpha(0.7f));
+
+        ctx.drawRoundedRect(dividerX - 0.5f, y + 8f, 1f, height - 16f, BorderRadius.all(0.5f), theme.getForegroundStroke().mulAlpha(progress * 0.6f));
+
+        float rightX = dividerX + padding / 2f;
+        ctx.drawText(valueFont, String.valueOf(total), rightX, columnY, textColor);
+        ctx.drawText(labelFont, "modules", rightX, columnY + valueFont.height() + 4f, textColor.mulAlpha(0.7f));
+    }
+
+    private void renderProfileCard(UIContext ctx,
+                                   float boxX,
+                                   float boxY,
+                                   float boxWidth,
+                                   float heroHeight,
+                                   float progress,
+                                   Theme theme,
+                                   ColorRGBA textColor,
+                                   ColorRGBA subtleText) {
+        float padding = 24f;
+        float width = 188f;
+        float height = 56f;
+        float cardX = boxX + boxWidth - padding - width;
+        float cardY = boxY + heroHeight - height - 20f;
+
+        ColorRGBA cardColor = theme.getForegroundColor().mulAlpha(progress * 0.6f);
+        ctx.drawRoundedRect(cardX, cardY, width, height, BorderRadius.all(14f), cardColor);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), cardX, cardY, width, height, -0.1f, BorderRadius.all(14f), theme.getForegroundStroke().mulAlpha(progress * 0.7f));
+
+        float avatarSize = 32f;
+        float avatarX = cardX + 12f;
+        float avatarY = cardY + (height - avatarSize) / 2f;
+        DrawUtil.drawRoundedTexture(ctx.getMatrices(), Zenith.id("icons/avatar.png"), avatarX, avatarY, avatarSize, avatarSize, BorderRadius.all(10f), ColorRGBA.WHITE.mulAlpha(progress));
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), avatarX, avatarY, avatarSize, avatarSize, -0.1f, BorderRadius.all(10f), theme.getForegroundStroke().mulAlpha(progress * 0.55f));
+
+        Font nameFont = Fonts.MEDIUM.getFont(7);
+        Font roleFont = Fonts.MEDIUM.getFont(6);
+        float textX = avatarX + avatarSize + 12f;
+        float nameY = cardY + 14f;
+
+        ctx.drawText(nameFont, UserInfo.getUsername(), textX, nameY, textColor);
+        ctx.drawText(roleFont, UserInfo.getRole(), textX, nameY + nameFont.height() + 4f, subtleText);
+
+        float badgeWidth = 52f;
+        float badgeHeight = 18f;
+        float badgeX = cardX + width - badgeWidth - 12f;
+        float badgeY = cardY + 12f;
+        ctx.drawRoundedRect(badgeX, badgeY, badgeWidth, badgeHeight, BorderRadius.all(6f), theme.getColor().mulAlpha(progress * 0.4f));
+        Font badgeFont = Fonts.MEDIUM.getFont(6);
+        ctx.drawText(badgeFont, "ONLINE", badgeX + (badgeWidth - badgeFont.width("ONLINE")) / 2f, badgeY + (badgeHeight - badgeFont.height()) / 2f, theme.getWhite().mulAlpha(progress));
+    }
+
+    private void renderThemeButton(UIContext ctx, float x, float y, float size, float progress, Theme theme) {
+        this.themeButtonBounds = new Rect(x, y, size, size);
+        drawIconButton(ctx, x, y, size, theme.getIcon(), progress, theme);
+    }
+
+    private void renderLayoutButton(UIContext ctx, float x, float y, float size, float progress, Theme theme, int columns) {
+        this.layoutToggleButtonBounds = new Rect(x, y, size, size);
+        String icon = columns == 1 ? "9" : columns == 2 ? ":" : ";";
+        drawIconButton(ctx, x, y, size, icon, progress, theme);
+    }
+
+    private void drawIconButton(UIContext ctx, float x, float y, float size, String icon, float progress, Theme theme) {
+        ColorRGBA background = theme.getForegroundColor().mulAlpha(progress * 0.8f);
+        ctx.drawRoundedRect(x, y, size, size, BorderRadius.all(9f), background);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), x, y, size, size, -0.1f, BorderRadius.all(9f), theme.getForegroundStroke().mulAlpha(progress * 0.7f));
         Font iconFont = Fonts.ICONS.getFont(7);
-        float w = 8 +iconFont.width(cat.getIcon()) + 4 +font.width(String.valueOf(enabled))+ 1 + 8+1 + iconFont.width(cat.getIcon()) + 4 +font.width(String.valueOf(total))+8 ;
-        float h = 22;
-        ColorRGBA bar = theme.getForegroundColor().mulAlpha(progress);
-        ctx.drawRoundedRect(startX, y, w, h, BorderRadius.all(7), bar);
-        DrawUtil.drawRoundedBorder(ctx.getMatrices(), startX, y, w, h, -0.1f,
-                BorderRadius.all(7), theme.getForegroundStroke().mulAlpha(progress));
-
-
-        float iconSz = 7;
-        float cx = startX + 8;
-        float ty = y + (h - font.height()) / 2f;
-        float iy = y + (h - iconFont.height()) / 2f -0.5f;
-
-        ctx.drawText(iconFont,cat.getIcon(),cx+(cat.getIcon().equals("2")?1:0),iy,theme.getColor().mulAlpha(progress));
-        cx += iconFont.width(cat.getIcon()) + 4;
-        ctx.drawText(font, String.valueOf(enabled), cx, ty, textColor);
-        cx += font.width(String.valueOf(enabled)) ;
-        cx+=1f;
-        ctx.drawSprite(new CustomSprite("icons/separator.png"), cx, iy-1, 8, 8,
-                ColorRGBA.WHITE.mulAlpha(progress));
-        cx += 8+1 ;
-        ctx.drawText(iconFont,cat.getIcon(),cx,iy,theme.getColor().mulAlpha(progress));
-        cx +=iconFont.width(cat.getIcon())+4;
-
-        ctx.drawText(font, String.valueOf(total), cx, ty, textColor);
-
-        return startX + w;
+        float iconX = x + (size - iconFont.width(icon)) / 2f;
+        float iconY = y + (size - iconFont.height()) / 2f;
+        ctx.drawText(iconFont, icon, iconX, iconY, theme.getColor().mulAlpha(progress));
     }
 
-    private float renderThemeButton(UIContext ctx, float startX, float y,
-                                    float progress, Theme theme) {
-        float size = 22;
-        this.themeButtonBounds = new Rect(startX, y, size, size);
-        drawIconButton(ctx, startX, y, size, theme.getIcon(), progress, theme);
-        return startX + size;
+    private void renderSearchBar(UIContext ctx,
+                                 float x,
+                                 float y,
+                                 float width,
+                                 float height,
+                                 float progress,
+                                 Theme theme) {
+        this.searchBarBounds = new Rect(x, y, width, height);
+        ColorRGBA background = theme.getForegroundColor().mulAlpha(progress * 0.75f);
+        ctx.drawRoundedRect(x, y, width, height, BorderRadius.all(9f), background);
+        DrawUtil.drawRoundedBorder(ctx.getMatrices(), x, y, width, height, -0.1f, BorderRadius.all(9f), theme.getForegroundStroke().mulAlpha(progress * 0.7f));
+
+        Font iconFont = Fonts.ICONS.getFont(6);
+        float iconX = x + 10f;
+        float iconY = y + (height - iconFont.height()) / 2f;
+        ctx.drawText(iconFont, "4", iconX, iconY, theme.getGrayLight().mulAlpha(progress));
+
+        float textX = iconX + iconFont.width("4") + 8f;
+        float textY = y + (height - searchField.getFont().height()) / 2f;
+        ctx.enableScissor((int) textX, (int) y, (int) (x + width - 10f), (int) (y + height));
+        searchField.render(ctx, textX, textY, theme.getWhite().mulAlpha(progress), theme.getWhite().mulAlpha(progress * 0.5f));
+        ctx.disableScissor();
     }
 
-    private float renderLayoutButton(UIContext ctx, float startX, float y,
-                                     float progress, Theme theme, int cols) {
-        float size = 22;
-        this.layoutToggleButtonBounds = new Rect(startX, y, size, size);
-        String icon = cols == 2 ? ":" : cols == 3 ? ";" : "9";
-        drawIconButton(ctx, startX, y, size, icon, progress, theme);
-        return startX + size;
+    private String formatSubtitle(Category category) {
+        return "Curated tools for " + category.getName().toLowerCase(Locale.ROOT) + " adventures";
     }
 
-    private void drawIconButton(UIContext ctx, float x, float y,
-                                float s, String icon,
-                                float progress, Theme theme) {
-        ColorRGBA bar = theme.getForegroundColor().mulAlpha(progress);
-        ctx.drawRoundedRect(x, y, s, s, BorderRadius.all(6), bar);
-        DrawUtil.drawRoundedBorder(ctx.getMatrices(), x, y, s, s, -0.1f,
-                BorderRadius.all(6), theme.getForegroundStroke().mulAlpha(progress));
-        Font iconF = Fonts.ICONS.getFont(7);
-        float ix = x + (s - iconF.width(icon)) / 2f;
-        float iy = y + (s - iconF.height()) / 2f;
-        ctx.drawText(iconF, icon, ix, iy, theme.getColor().mulAlpha(progress));
-    }
-
-    private void renderSearchBar(UIContext ctx, float boxX, float y,
-                                 float boxWidth, float progress, Theme theme) {
-
-        float w = 128, h = 22, pad = 8;
-        float x = boxX + boxWidth - pad - w;
-        this.searchBarBounds = new Rect(x, y, w, h);
-
-        ColorRGBA bar = theme.getForegroundColor().mulAlpha(progress);
-        ctx.drawRoundedRect(x, y, w, h, BorderRadius.all(6), bar);
-        DrawUtil.drawRoundedBorder(ctx.getMatrices(), x, y, w, h, -0.1f,
-                BorderRadius.all(6), theme.getForegroundStroke().mulAlpha(progress));
-
-        Font font = Fonts.MEDIUM.getFont(7);
-        String txt = searchField.getText();
-        boolean empty = txt.isEmpty() && !searchField.isSelected();
-        float ty = y + (h - font.height()) / 2f;
-        if (empty) {
-            ctx.drawText(font, "Search", x + 8, ty, theme.getWhite().mulAlpha(progress * 0.5f));
-        } else {
-            //ctx.drawText(font, txt, x + 8, ty, theme.getWhite().mulAlpha(progress));
-            ctx.enableScissor((int) x+8,(int) ty-10,(int)Math.ceil( x+8+128),(int) Math.ceil(ty)+10);
-            searchField.render(ctx,x+8,ty,theme.getWhite().mulAlpha(progress),theme.getWhite().mulAlpha(progress * 0.5f));
-//            if (searchField.isSelected() && (System.currentTimeMillis() / 500) % 2 == 0) {
-//                float tw = font.width(txt);
-//                ctx.drawRect(x + 8 + tw, y + 4, 1, h - 8, theme.getWhite().mulAlpha(progress));
-//            }
-            ctx.disableScissor();
-        }
-    }
-    public void resetAnim(Category last,Category next) {
-
-            animation.reset(0);
-
+    public void resetAnim(Category last, Category next) {
+        animation.reset(0);
         this.lastCategory = last;
     }
+
     public boolean handleMouseClicked(double mouseX, double mouseY) {
         if (layoutToggleButtonBounds.contains(mouseX, mouseY)) {
             onLayoutToggle.run();
